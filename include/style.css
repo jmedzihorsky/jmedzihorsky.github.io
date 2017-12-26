@@ -3,7 +3,7 @@
 body {
   background: white;
   font-family: Lato, Calibri, Segoe, 'Segoe UI', Optima, Arial, sans-serif;
-  font-size:calc(1em + 0.1618vw);
+  font-size:calc(1em + 0.1618vh);
   max-width: 61.8vh;
   margin-left: auto; 
   margin-right: auto; 
@@ -89,4 +89,5 @@ img {
   height: 1em;
 }
 
+span.nobr { white-space: nowrap; }
 
