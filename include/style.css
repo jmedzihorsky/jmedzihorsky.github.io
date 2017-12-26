@@ -3,9 +3,9 @@
 body {
   background: white;
   font-family: Lato, Calibri, Segoe, 'Segoe UI', Optima, Arial, sans-serif;
-  margin-left: 4em;
-  margin-right: 4em;
-  padding-top: 61.8%;
+  max-width: 61.8vh;
+  margin-left: auto; 
+  margin-right: auto; 
 }
 /* Headers */
 
