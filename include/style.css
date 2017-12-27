@@ -16,7 +16,7 @@ body {
 
     h1 {
       font-size: 1.618em;
-      font-weight: bold;
+      font-weight: normal;
       margin-top: 0em;
       margin-bottom: 0;
     }
@@ -29,9 +29,9 @@ body {
 
     h3 {
       font-size: 1em;
-      font-weight: normal;
+      font-weight: bold;
       margin-top: 0;
-      text-indent: 1em;
+      text-indent: 0;
     }
 /* List items: */
     li { margin-bottom: .3em; }
