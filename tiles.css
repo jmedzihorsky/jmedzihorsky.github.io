@@ -1,0 +1,40 @@
+svg{
+  border: solid 1px #aaa;
+  float:left;
+}
+
+.svgtext{
+  -webkit-touch-callout: none;
+  -webkit-user-select:none;
+  -khtml-user-select:none;
+  -moz-user-select:none;
+  -ms-user-select:none;
+  -o-user-select:none;
+  user-select:none;
+}
+
+body {
+  background: white;
+  font-size:1em;
+  max-width: 80vw;
+  margin-left: auto; 
+  margin-right: auto; 
+}
+
+table {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  float:left;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+}
+
+td{
+  border: 1px solid #dddddd;
+}
+tr {
+  border: 1px solid #dddddd;
+}
+
+
