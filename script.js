@@ -9,18 +9,92 @@ var gw = wws * 29,
     gh = hws * 23;
 var tx = 0,
     ty = 0;
-var interval = (width-(8*(width/117)))/117;
-var last = (2016-1900)*interval;
+var yearX = 1900;
+    yearY = 2016;
+var interval = 0;
+    last = 0;
+var colorMenu;
+var selectedGraph;
+var isSelected = 0;
+var redrawTimer;
+var lineFunction = d3.svg.line().x(function(d) { return d.x; })
+                                .y(function(d) { return d.y; })
+                                .interpolate("basis");
+
 var svg = d3.select("body").append("svg")
     .attr("width", gw)
     .attr("height", gh)
-    .on("contextmenu",function(d){d3.event.preventDefault();});
+    .on("click",function(){
+      if(colorMenu.style("opacity")==1){
+        colorMenu.style("opacity",0)
+                  .attr("transform","translate(-1000,-1000)");
+      }
+    })
+    .on("contextmenu",function(){
+      d3.event.preventDefault();
+      /*if(isSelected && colorMenu.style("opacity")==0){
+        colorMenu.style("opacity",1)
+                .attr("transform","translate("+d3.mouse(this)[0]+","+d3.mouse(this)[1]+")");
+      }*/
+      if(!isSelected){
+        colorMenu.style("opacity",0)
+                .attr("transform","translate(-1000,-1000)");
+      }
+    });
 
 var color = d3.rgb(220,220,220);
-var colorPalette = [[d3.rgb(0,0,256),d3.rgb(227,32,23),d3.rgb(255,211,0),d3.rgb(0,120,42),d3.rgb(0,54,136)],
-                    [d3.rgb(240,234,198),d3.rgb(225,198,115),d3.rgb(176,167,133),d3.rgb(184,185,206),d3.rgb(242,192,207)],
-                    [d3.rgb(51,66,91),d3.rgb(0,152,212),d3.rgb(252,194,154),d3.rgb(236,240,241),d3.rgb(170,170,170)]];
+var colorPalette = [[d3.rgb(7,15,132),d3.rgb(146,19,19),d3.rgb(0,120,42),d3.rgb(0,0,0)],
+                    [d3.rgb(0,0,256),d3.rgb(237,32,23),d3.rgb(144,200,152),d3.rgb(170,170,170)]];
 
+var globalCountries = [];
+//var countryIds = [];
+//var countryPolyarchies = [];
+
+var startYear = d3.select("#startYear").on("input", function(){
+  if(parseInt(this.value)>=parseInt(this.min) && parseInt(this.value)<=parseInt(this.max)){
+    yearX = parseInt(this.value);
+    endYear.attr("min",yearX+1);
+
+    //svg.select("#LVA").selectAll("path").each(function(){redrawPath();});
+    //svg.selecAll("g").transition().duration(2000);
+    clearTimeout(redrawTimer);
+    svg.selectAll("#graph").remove();
+    redrawTimer = setTimeout(drawGraphs, 500);
+  }
+});
+var endYear = d3.select("#endYear").on("input", function(){
+  if(parseInt(this.value)>=parseInt(this.min) && parseInt(this.value)<=parseInt(this.max)){
+    yearY = parseInt(this.value);
+    startYear.attr("max",yearY-1);
+    clearTimeout(redrawTimer);
+    svg.selectAll("#graph").remove();
+    redrawTimer = setTimeout(drawGraphs, 500);
+  }
+});
+
+
+
+function createColorMenu(){
+  colorMenu = svg.append("g").attr("transform","translate(-1000,-1000)")
+                .style("opacity",0);
+  for(var i=0;i<2;i++){
+    for(var j=0;j<4;j++){
+      colorMenu.append("rect")
+              .attr("x",j*20)
+              .attr("y",i*20)
+              .attr("width",20)
+              .attr("height",20)
+              .attr("fill",colorPalette[i][j])
+              .attr("stroke",d3.rgb(40,40,40))
+              .attr("cursor","crosshair")
+              .on("click",function(){
+                color = d3.select(this).style("fill");
+                selectedGraph.attr("fill",color)
+                            .attr("stroke",color);
+              });
+    }
+  }
+}
 
 function createNew(rx,ry,country,countryId){
   var drag = d3.behavior.drag()
@@ -31,17 +105,30 @@ function createNew(rx,ry,country,countryId){
 
   var newg = svg.append("g").data([{x: rx, y: ry}])
                             .attr("id",countryId)
+                            .on("contextmenu",function(){
+                              if(colorMenu.style("opacity")==0 || selectedGraph!=graph){
+                                selectedGraph = graph;
+                                colorMenu.style("opacity",1)
+                                        .attr("transform","translate("+d3.mouse(this)[0]+","+d3.mouse(this)[1]+")");
+                              }else if(colorMenu.style("opacity")==1){
+                                colorMenu.style("opacity",0)
+                                        .attr("transform","translate(-1000,-1000)");
+                              }
+                            })
 			    .on("mouseover",function(){
-				dragrect.attr("fill-opacity", alpha+0.3);})
+              //if(colorMenu.style("opacity")==0)selectedGraph = graph;
+              isSelected = 1;
+				      dragrect.attr("fill-opacity", alpha+0.3);})
 			   .on("mouseout",function(){
-				dragrect.attr("fill-opacity", alpha);});
+              isSelected = 0;
+				      dragrect.attr("fill-opacity", alpha);});
 
   var dragrect = newg.append("rect")
     .attr("x", function(d) { return d.x; })
     .attr("y", function(d) { return d.y; })
     .attr("height", height)
     .attr("width", width)
-    .attr("fill", color)
+    .attr("fill", d3.rgb(220,220,220))
     .attr("fill-opacity", alpha)
     .attr("cursor", "grab")
     .call(drag);
@@ -65,6 +152,7 @@ function createNew(rx,ry,country,countryId){
     .attr("stroke", "blue")
     .attr("cursor", "grab")
     .attr("height", height)
+    .attr("stroke-width", 1)
     .attr("width", 0)
     .call(drag);
 
@@ -81,13 +169,20 @@ function createNew(rx,ry,country,countryId){
 
   function dragstart(d){
     if(d3.event.sourceEvent.which == 1){//d3.event.sourceEvent.button == 0
+      colorMenu.style("opacity",0)
+              .attr("transform","translate(-1000,-1000)");
       dragInitiated = true;
       this.parentNode.parentNode.appendChild(this.parentNode);
       //newg.style("opacity", alpha+0.3);
       dragrect.attr("cursor", "grabbing");
       text.attr("cursor", "grabbing");
     }else if(d3.event.sourceEvent.which == 3){
-      graph.attr("fill",color).attr("stroke",color);
+      colorMenu.node().parentNode.appendChild(colorMenu.node());
+      //graph.attr("fill",color).attr("stroke",color);
+      //selectedGraph = graph;//d3.select(this);
+
+      //colorMenu.style("opacity",1)
+      //        .attr("transform","translate("+d3.mouse(this)[0]+","+d3.mouse(this)[1]+")");
     }
   }
 
@@ -96,7 +191,7 @@ function createNew(rx,ry,country,countryId){
       tx = Math.round(d.x/wws)*wws;
       ty = Math.round(d.y/hws)*hws;
       //newg.style("opacity", alpha);
-      dragrect.attr("x",d.x=tx).attr("y",d.y=ty).attr("cursor", "grab").attr("fill-opacity", alpha);
+      dragrect.attr("x",d.x=tx).attr("y",d.y=ty).attr("cursor", "grab");//.attr("fill-opacity", alpha);
       text.attr("x",d.x=tx).attr("y",d.y=ty).attr("cursor", "grab");
       graph.attr("x",d.x=tx).attr("y",d.y =ty).attr("cursor","grab");
       dragInitiated = false;
@@ -134,39 +229,34 @@ function NormSInv(p) {
 }
 
 function oneTile(countryId,polyarchies,years,polyarchies2){
-  var g = d3.select("#"+countryId.replace(/"/g,""));//.attr("fill","red");
+  var g = d3.select("#"+countryId.replace(/"/g,""));
   if(!g.empty()){
     var countryGraph = g.select("svg");
+    countryGraph.attr("width",0);
     var countryData = [];
     var countryData2 = [];
     var previousYear = years[0]-1;
-    var lineFunction = d3.svg.line().x(function(d) { return d.x; })
-                                    .y(function(d) { return d.y; })
-                                    .interpolate("basis");
+
     var x = [],
         y = [],
         z = [];
     var y2;
-    //var last = (2016-1900)*((width)/117);
 
     for(var i=0;i<polyarchies.length;i++){
       if(years[i]-1!=previousYear){
-        countryGraph.append("path").attr("d", lineFunction(countryData))
-                                     //.attr("stroke", "blue")
-                                     .attr("stroke-width", 1)
-                                     .attr("fill", "none");
+        countryGraph.append("path").attr("id","graph")
+                                   .attr("d", lineFunction(countryData))
+                                   //.attr("stroke-width", 1)
+                                   .attr("fill", "none");
+
         for(var j=x.length-1;j>-1;j--){
-          //y2 = y[j]-20;
           y2 = 100 - (y[j]*80+(80*z[j]));
-          //y2 = 100 - (y[j]*100+10);
           countryData2.push(x[j].toString() + "," + y2.toString() + " ");
         }
-        countryGraph.append("polygon").attr("points",countryData2)
-                                        //.attr("stroke","blue")
-                                        //.style("fill", "blue")
-                                        .attr("fill-opacity",0.2)
-                                        .attr("stroke-opacity",0.2)
-                                        .attr("stroke-width",1);
+        countryGraph.append("polygon").attr("id","graph")
+                                      .attr("points",countryData2)
+                                      .attr("fill-opacity",0.2)
+                                      .attr("stroke-opacity",0.2);
         countryData = [];
         countryData2 = [];
         x = [];
@@ -175,48 +265,75 @@ function oneTile(countryId,polyarchies,years,polyarchies2){
       }
       previousYear = years[i];
 
-      //x.push((years[i]-1900)*((width)/117));
-      x.push((years[i]-1900)*interval*((width-(8*interval))/last)+(4*interval));
-      //y.push(100 - (polyarchies[i]*100-10));
-      //y2 = y[y.length-1];
+      x.push((years[i]-yearX)*interval*((width-(8*interval))/last)+(4*interval));
       y.push(polyarchies[i]);
       z.push(polyarchies2[i]);
-      //z.push(NormSInv(polyarchies2[i])/40);
-      //y2 = 100 - (polyarchies[i]*100-10);
       y2 = 100 - (polyarchies[i]*80-(80*z[z.length-1]));
       countryData2.push(x[x.length-1].toString() + "," + y2.toString() + " ");
       countryData.push({"x": x[x.length-1],"y": 100 - (polyarchies[i]*80)});
     }
     for(var i=x.length-1;i>-1;i--){
-      //y2 = y[i]-20;
       y2 = 100 - (y[i]*80+(80*z[i]));
-      //y2 = 100 - (y[i]*100+10);
       countryData2.push(x[i].toString() + "," + y2.toString() + " ");
     }
-    countryGraph.append("polygon").attr("points",countryData2)
-                                     //.attr("stroke","blue")
-                                     //.style("fill", "blue")
-                                     .attr("fill-opacity",0.2)
-                                     .attr("stroke-opacity",0.2)
-                                     .attr("stroke-width",1);
-    countryGraph.append("path").attr("d", lineFunction(countryData))
-                                   //.attr("stroke", "blue")
-                                   .attr("stroke-width", 1)
-                                   .attr("fill", "none");
+    countryGraph.append("polygon").attr("id","graph")
+                                  .attr("points",countryData2)
+                                 .attr("fill-opacity",0.2)
+                                 .attr("stroke-opacity",0.2);
+    countryGraph.append("path").attr("id","graph")
+                               .attr("d", lineFunction(countryData))
+                               .attr("fill", "none");
 
-  countryGraph.transition()
-              .duration(2000)
-              .ease("Linear")
-              .attr("width",width);
+/*                               */
+   //countryGraph.attr("width",width);
+    //if(countryGraph.attr("width")==0){
+      countryGraph.transition()
+                  .ease("Linear")
+                  .duration(2000)
+                  .attr("width",width);
+    /*}else{
+      countryGraph.transition()
+                   //.delay(500)
+                   .ease("Linear")
+                   .duration(400)
+                   .attr("width",0);
+      countryGraph.transition().delay(400)
+                   .ease("Linear")
+                   .duration(2000)
+                   .attr("width",width);
+    }*/
   }else alert(countryId);
 }
 
-function tiles(countries,countryYears){
-  var tabs = [];// = countries[0].split(",");
+function drawGraphs(){
+  var countryId = globalCountries[0][1];
+  var years = [];
   var polyarchies = [];
   var polyarchies2 = [];
-  var years = [];
-  var countryId = countryYears[1].split(",")[1];
+
+  var timeline = yearY - yearX;
+  interval = (width-(8*(width/timeline)))/timeline;
+  last = timeline*interval;
+  for(var i=0;i<globalCountries.length;i++){
+    if(globalCountries[i][1]!=countryId){
+      oneTile(countryId,polyarchies,years,polyarchies2);
+      polyarchies = [];
+      polyarchies2 = [];
+      years = [];
+      countryId = globalCountries[i][1];
+    }
+    if(!isNaN(globalCountries[i][3])){
+      if(globalCountries[i][5]>yearX && globalCountries[i][5]<yearY){
+        polyarchies.push(globalCountries[i][3]);
+        polyarchies2.push(globalCountries[i][4]);
+        years.push(globalCountries[i][5]);
+      }
+    }
+  }
+}
+
+function tiles(countries,countryYears){
+  var tabs = [];
   var newCountry = "";
   for(var i=1;i<countries.length;i++){
       tabs = countries[i].split(",");
@@ -225,45 +342,20 @@ function tiles(countries,countryYears){
         createNew(wws*tabs[9],hws*tabs[10],tabs[0],tabs[2]);//!isNaN(tabs[9])
       }
   }
-
   for(var i=1;i<countryYears.length;i++){
-    tabs = countryYears[i].split(",");
-    if(tabs[1]!=countryId){
-      oneTile(countryId,polyarchies,years,polyarchies2);
-      polyarchies = [];
-      polyarchies2 = [];
-      years = [];
-      countryId = tabs[1];
-    }
-    if(!isNaN(tabs[3])){
-      polyarchies.push(tabs[3]);
-      polyarchies2.push(tabs[4]);
-      years.push(tabs[5]);
-    }
+    globalCountries.push(countryYears[i].split(","));
   }
+
+  drawGraphs();
+  createColorMenu();
 }
 
 function readTextFile(filepath){
   var file = new XMLHttpRequest();
   file.open("GET", filepath, false);
+  //file.setRequestHeader("Content-Type","text/plain");
   file.send(null);
   return file.responseText.split("\n");
 }
 
 tiles(readTextFile("misc/worldtilegrid_vdem.csv"),readTextFile("misc/data20171230.csv"));
-
-function createColorTable(){
-  var table = d3.select("body").append('table');
-  for(var i=0;i<3;i++){
-    var row = table.append('tr');
-    for(var j=0;j<5;j++){
-      row.append('td').attr("width",20).append("svg").attr("width",100)
-                                                  .attr("height",100).append("rect").attr("width",100)
-                                                  .attr("height",100)
-                                                  .attr("fill",colorPalette[i][j])
-                                                  .attr("cursor","crosshair")
-                                                  .on("click",function(){color = d3.select(this).style("fill");});
-    }
-  }
-}
-createColorTable();
