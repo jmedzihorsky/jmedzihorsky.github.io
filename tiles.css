@@ -13,6 +13,7 @@ table{
   width: 600px;
   float:left;
   text-overflow: clip;
+  empty-cells: show;
 }
 td{
   white-space: nowrap;
@@ -20,7 +21,7 @@ td{
 }
 select{
   font-size: 1em;
-  text-align: center;
+  text-align: center;;
 }
 input[type="text"]{
   -moz-border-radius: 10px;

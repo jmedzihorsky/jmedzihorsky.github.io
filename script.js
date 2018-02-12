@@ -1,7 +1,3 @@
-/*var wW = window.screen.availWidth;
-var wH = window.screen.availHeight;
-wS = 100*0.3;*/
-
 var goldenRatio = (1 + Math.sqrt(5))/2;
 var alpha = 0.2;
 var minYear = 1900,
@@ -261,25 +257,25 @@ var tutorial = d3.select("#tutorial").on("click",function(){
                               .style("opacity", 0)
                               .attr("xlink:href", "misc/cursor.png");
 
-    var pathData = "M164.80339887498948,309L164.80339887498948,824L329.60679774997897,824"+
+    var pathData =
+                    "M164.80339887498948,309L164.80339887498948,824L329.60679774997897,824"+
                     "L329.60679774997897,1133L494.4101966249684,1133L494.4101966249684,1442"+
                     "L659.2135954999579,1442L659.2135954999579,1648L988.8203932499368,1648"+
                     "L988.8203932499368,1236L824.0169943749474,1236L824.0169943749474,1133"+
-                    "L988.8203932499368,1133L988.8203932499368,412L1153.6237921249265,412"+
-                    "L1153.6237921249265,309L988.8203932499368,309L988.8203932499368,618"+
-                    "L659.2135954999579,618L494.4101966249684,618L494.4101966249684,412"+
-                    "L329.60679774997897,412L329.60679774997897,309L164.80339887498948,309"+
-          "M1318.4271909999159,103L1318.4271909999159,412L1648.033988749895,412"+
-                    "L1648.033988749895,618L1483.2305898749053,618L1483.2305898749053,927"+
-                    "L1648.033988749895,927L1648.033988749895,721L1812.8373876248843,721"+
-                    "L1812.8373876248843,824L2142.444185374863,824L2142.444185374863,1030"+
-                    "L2636.8543819998317,1030L2636.8543819998317,618L2801.657780874821,618"+
-                    "L2801.657780874821,515L2966.4611797498105,515L2966.4611797498105,412"+
-                    "L2636.8543819998317,412L2636.8543819998317,103L2307.247584249853,103"+
-                    "L2307.247584249853,206L2142.444185374863,206L2142.444185374863,309"+
-                    "L1977.6407864998737,309L1977.6407864998737,412L1648.033988749895,412"+
-                    "L1648.033988749895,309L1483.2305898749053,309L1483.2305898749053,103"+
-                    "L1318.4271909999159,103"+
+                    "L988.8203932499368,1133L988.8203932499368,824L824.0169943749474,824"+
+                    "L824.0169943749474,618L329.60679774997897,618L329.60679774997897,309"+
+                    "L164.80339887498948,309"+
+            "M1318.4271909999159,103L1318.4271909999159,412L1648.033988749895,412"+
+                    "L1648.033988749895,618L1483.2305898749053,618L1483.2305898749053,721"+
+                    "L1812.8373876248843,721L1812.8373876248843,824L2142.444185374863,824"+
+                    "L2142.444185374863,1030L2472.0509831248423,1030L2636.8543819998317,1030"+
+                    "L2636.8543819998317,618L2801.657780874821,618L2801.657780874821,515"+
+                    "L2966.4611797498105,515L2966.4611797498105,412L2636.8543819998317,412"+
+                    "L2636.8543819998317,103L2307.247584249853,103L2307.247584249853,206"+
+                    "L2142.444185374863,206L2142.444185374863,309L1977.6407864998737,309"+
+                    "L1977.6407864998737,412L1648.033988749895,412L1648.033988749895,309"+
+                    "L1483.2305898749053,309L1483.2305898749053,103L1318.4271909999159,103"+
+
           "M1483.2305898749053,1236L1483.2305898749053,1545L1318.4271909999159,1545L1318.4271909999159,1648"+
                     "L1483.2305898749053,1648L1483.2305898749053,1751L1648.033988749895,1751L1648.033988749895,1648"+
                     "L1812.8373876248843,1648L1812.8373876248843,1854L1977.6407864998737,1854L1977.6407864998737,1957"+
@@ -300,12 +296,17 @@ var tutorial = d3.select("#tutorial").on("click",function(){
                     "L3955.2815729997474,824L3955.2815729997474,618L3790.478174124758,618L3790.478174124758,515"+
                     "L3460.871376374779,515L3460.871376374779,618L2966.4611797498105,618L2966.4611797498105,721"+
                     "L2801.657780874821,721L2801.657780874821,824L2636.8543819998317,824L2636.8543819998317,1030"+
-                    "L2472.0509831248423,1030";
+                    "L2472.0509831248423,1030"+
+          "M3790.478174124758,1751L3790.478174124758,1957L3625.6747752497686,1957L3625.6747752497686,2060"+
+                    "L3790.478174124758,2060L3955.2815729997474,2060L3955.2815729997474,2163L4120.084971874737,2163"+
+                    "L4120.084971874737,2060L4284.888370749726,2060L4284.888370749726,1957L4120.084971874737,1957"+
+                    "L4120.084971874737,1854L3955.2815729997474,1854L3955.2815729997474,1751L3790.478174124758,1751";
 
     var continent1 = createText("Americas","1.0em","150px",0,450,750,400,200),
         continent2 = createText("Europe","1.0em","150px",0,2000,450,400,200),
         continent3 = createText("Africa","1.0em","150px",0,2000,1350,400,200),
-        continent4 = createText("Asia","1.0em","150px",0,3100,750,400,200);
+        continent4 = createText("Asia","1.0em","150px",0,3100,750,400,200),
+        continent5 = createText("Oceania","1.0em","150px",0,3750,1850,400,200);
     var continentPath = tutorialG.append("svg")
                                 .append("path")
                                 .attr("opacity",0)
@@ -365,6 +366,8 @@ var tutorial = d3.select("#tutorial").on("click",function(){
     continent3.transition().delay(13000).duration(2000).style("opacity",1)
               .transition().delay(1000).duration(2000).style("opacity",0);
     continent4.transition().delay(13000).duration(2000).style("opacity",1)
+              .transition().delay(1000).duration(2000).style("opacity",0);
+    continent5.transition().delay(13000).duration(2000).style("opacity",1)
               .transition().delay(1000).duration(2000).style("opacity",0);
     continentPath.transition().delay(13000).duration(2000).style("opacity",1)
                 .transition().delay(1000).duration(2000).style("opacity",0);
@@ -579,8 +582,10 @@ var selection = d3.select("#select").on("change",function(){
 d3.select("#startYearUp").on("mousedown", function(){
   this.src = "misc/buttonUpClicked.svg";
   clearTimeout(redrawTimer);
+  var value = parseInt(startYear.property("value"));
+  if(value+1<parseInt(endYear.property("value")))startYear.property("value",value+1);
   mouseholdTimer = setInterval(function(){
-    var value = parseInt(startYear.property("value"));
+    value = parseInt(startYear.property("value"));
     if(value+1<parseInt(endYear.property("value")))startYear.property("value",value+1);
   },100);
 }).on("mouseup mouseout",function(){
@@ -591,8 +596,10 @@ d3.select("#startYearUp").on("mousedown", function(){
 d3.select("#startYearDown").on("mousedown", function(){
   this.src = "misc/buttonDownClicked.svg";
   clearTimeout(redrawTimer);
+  var value = parseInt(startYear.property("value"));
+  if(value>minYear)startYear.property("value",value-1);
   mouseholdTimer = setInterval(function(){
-    var value = parseInt(startYear.property("value"));
+    value = parseInt(startYear.property("value"));
     if(value>minYear)startYear.property("value",value-1);
   },100);
 }).on("mouseup mouseout",function(){
@@ -604,8 +611,10 @@ d3.select("#startYearDown").on("mousedown", function(){
 d3.select("#endYearUp").on("mousedown", function(){
   this.src = "misc/buttonUpClicked.svg";
   clearTimeout(redrawTimer);
+  var value = parseInt(endYear.property("value"));
+  if(value<maxYear)endYear.property("value",value+1);
   mouseholdTimer = setInterval(function(){
-    var value = parseInt(endYear.property("value"));
+    value = parseInt(endYear.property("value"));
     if(value<maxYear)endYear.property("value",value+1);
   },100);
 }).on("mouseup mouseout",function(){
@@ -616,8 +625,10 @@ d3.select("#endYearUp").on("mousedown", function(){
 d3.select("#endYearDown").on("mousedown", function(){
   this.src = "misc/buttonDownClicked.svg";
   clearTimeout(redrawTimer);
+  var value = parseInt(endYear.property("value"));
+  if(value-1>parseInt(startYear.property("value")))endYear.property("value",value-1);
   mouseholdTimer = setInterval(function(){
-    var value = parseInt(endYear.property("value"));
+    value = parseInt(endYear.property("value"));
     if(value-1>parseInt(startYear.property("value")))endYear.property("value",value-1);
   },100);
 }).on("mouseup mouseout",function(){
@@ -629,8 +640,10 @@ d3.select("#endYearDown").on("mousedown", function(){
 d3.select("#intervalsUp").on("mousedown", function(){
   this.src = "misc/buttonUpClicked.svg";
   clearTimeout(redrawTimer);
+  var value = parseInt(intervalInput.property("value"));
+  if(value<99)intervalInput.property("value",value+1);
   mouseholdTimer = setInterval(function(){
-    var value = parseInt(intervalInput.property("value"));
+    value = parseInt(intervalInput.property("value"));
     if(value<99)intervalInput.property("value",value+1);
   },100);
 }).on("mouseup mouseout",function(){
@@ -643,8 +656,10 @@ d3.select("#intervalsUp").on("mousedown", function(){
 d3.select("#intervalsDown").on("mousedown", function(){
   this.src = "misc/buttonDownClicked.svg";
   clearTimeout(redrawTimer);
+  var value = parseInt(intervalInput.property("value"));
+  if(value-1>0)intervalInput.property("value",value-1);
   mouseholdTimer = setInterval(function(){
-    var value = parseInt(intervalInput.property("value"));
+    value = parseInt(intervalInput.property("value"));
     if(value-1>0)intervalInput.property("value",value-1);
   },100);
 }).on("mouseup mouseout",function(){
@@ -1058,11 +1073,8 @@ function oneTile(polyarchies){
 function drawGraphs(){
   interval = (width-8)/(yearY-yearX);
 
-var t = performance.now();
   for(var i=0;i<globalCountryYears.length;i++)computeGraph(globalCountryYears[i]);
-  console.log("compute:",performance.now()-t);t=performance.now();
   for(var i=0;i<globalCountryYears.length;i++)drawGraph(globalCountryYears[i]);
-  console.log("draw:",performance.now()-t);
 }
 
 function loadIntervals(intervals){
@@ -1095,16 +1107,14 @@ function loadData(countryYears){
       globalCountryYears[globalCountryYears.length-1][0] = countryYear[1];
     }
     if(!isNaN(countryYear[3])){
-      globalCountryYears[globalCountryYears.length-1][1].push(countryYear[2]);
+      globalCountryYears[globalCountryYears.length-1][1].push(parseFloat(countryYear[2]));
 
       for(var j=3;j<20;j++){
-        globalCountryYears[globalCountryYears.length-1][j+1].push(countryYear[j]);
-        if(j==3)globalCountryYears[globalCountryYears.length-1][j+18].push(countryYear[35]);
+        globalCountryYears[globalCountryYears.length-1][j+1].push(parseFloat(countryYear[j]));
+        if(j==3)globalCountryYears[globalCountryYears.length-1][j+18].push(parseFloat(countryYear[35]));
         else if(j==17)globalCountryYears[globalCountryYears.length-1][j+18].push(0);
-        else if(j==18||j==19)globalCountryYears[globalCountryYears.length-1][j+18].push(countryYear[j+15]);
-        else globalCountryYears[globalCountryYears.length-1][j+18].push(countryYear[j+16]);
-
-
+        else if(j==18||j==19)globalCountryYears[globalCountryYears.length-1][j+18].push(parseFloat(countryYear[j+15]));
+        else globalCountryYears[globalCountryYears.length-1][j+18].push(parseFloat(countryYear[j+16]));
       }
     }
   }
