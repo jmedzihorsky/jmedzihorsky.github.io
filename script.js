@@ -1,361 +1,1145 @@
-var alpha = 0.3;
+/*var wW = window.screen.availWidth;
+var wH = window.screen.availHeight;
+wS = 100*0.3;*/
+
 var goldenRatio = (1 + Math.sqrt(5))/2;
+var alpha = 0.2;
+var minYear = 1900,
+    maxYear = 2016;
 var spacing = 3;
 var width = 100 * goldenRatio,
     height = 100;
 var wws = width + spacing,
     hws = height + spacing;
-var gw = wws * 29,
-    gh = hws * 23;
+var gw = wws * 27,
+    gh = hws * 22;
 var tx = 0,
     ty = 0;
-var yearX = 1900;
-    yearY = 2016;
+var yearX = minYear,
+    yearY = maxYear;
 var interval = 0;
-    last = 0;
+
 var colorMenu;
+var svgMenu;
 var selectedGraph;
 var isSelected = 0;
 var redrawTimer;
-var lineFunction = d3.svg.line().x(function(d) { return d.x; })
-                                .y(function(d) { return d.y; })
-                                .interpolate("basis");
+var mouseholdTimer;
+
+function hideMenu(menu){
+  menu.transition().duration("200").style("opacity",0)
+      .on("end",function(){
+        menu.attr("transform","translate(-1000,-1000)");
+      });
+}
+function showMenu(menu){
+  var mousePos = d3.mouse(svg.node());
+  mousePos[0] = mousePos[0]/0.35;
+  mousePos[1] = mousePos[1]/0.35;
+  menu.node().parentNode.appendChild(menu.node());
+  menu.attr("transform","translate("+mousePos+")scale(3)")
+      .transition().duration("200").style("opacity",1);
+}
+var zoomScale = 1;
+var zoomTranslate = [,];
+var zoom = d3.zoom().scaleExtent([1, 10])
+                    .translateExtent([[0,0], [gw*0.35,gh*0.35]])
+                    .extent([[0,0], [gw*0.35,gh*0.35]])
+                    .on("start", function(){
+                      if(colorMenu.style("opacity")==1)hideMenu(colorMenu);
+                      if(svgMenu.style("opacity")==1)hideMenu(svgMenu);
+                    }).on("zoom", function () {
+                      zoomTranslate[0] = d3.event.transform.x/0.35;
+                      zoomTranslate[1] = d3.event.transform.y/0.35;
+                      if(zoomScale!=d3.event.transform.k){
+                        zoomScale = d3.event.transform.k;
+                        svg.selectAll(".country").transition().ease(d3.easeLinear)
+                            .delay(10).duration(50)
+                            .attr("transform","translate("+zoomTranslate+")scale("+zoomScale+")");
+                      }else{
+                        svg.selectAll(".country")
+                           .attr("transform","translate("+zoomTranslate+")scale("+zoomScale+")");
+                      }
+                     });
+
+d3.select("body").on("keydown",function(){
+  if(d3.event.key=="+"){
+    svg.interrupt();
+    zoom.scaleBy(svg.transition().duration(500).on("interrupt",function(){
+      zoom.scaleBy(svg, 1.3);
+    }), 1.3);
+  }
+  if(d3.event.key=="-"){
+    svg.interrupt();
+    zoom.scaleBy(svg.transition().duration(500).on("interrupt",function(){
+      zoom.scaleBy(svg, 0.7);
+    }), 0.7);
+  }
+  if(d3.event.key=="Escape"){
+    d3.selectAll("*").interrupt();
+  }
+
+  if(d3.event.ctrlKey&&d3.event.key=="z"){
+    undoAction();
+  }else if(d3.event.ctrlKey&&d3.event.shiftKey&&d3.event.key=="Z"){
+    redoAction();
+  }
+});
 
 var svg = d3.select("body").append("svg")
-    .attr("width", gw)
-    .attr("height", gh)
-    .on("click",function(){
-      if(colorMenu.style("opacity")==1){
-        colorMenu.style("opacity",0)
-                  .attr("transform","translate(-1000,-1000)");
+                            .style("transform-origin","top left")
+                            .style("transform","scale(0.35)")
+                            .attr("width", gw)
+                            .attr("height", gh)
+                            .call(zoom).on("mousedown",function(e){
+                              if(d3.select(d3.event.target.parentNode).attr("id") != "svgmenu" || d3.event.which == 3){
+                                hideMenu(svgMenu);
+                              }
+                            }).on("contextmenu",function(){
+                              d3.event.preventDefault();
+                              if(!isSelected){
+                                if(colorMenu.style("opacity")==1)hideMenu(colorMenu);
+                                else showMenu(svgMenu);
+                              }
+                            });
+
+d3.select("#info").on("click",function(){
+  d3.selectAll("*").interrupt();
+  var infoG = svg.append("g")
+              .attr("width",gw)
+              .attr("height",gh)
+              .style("opacity",0);
+  infoG.append("rect")
+    .attr("x",0)
+    .attr("y",0)
+    .attr("width",gw)
+    .attr("height",gh)
+    .attr("fill","white")
+    .style("opacity",0.8);
+
+  var infoText0 = infoG.append("text")
+                .attr("class","svgtext")
+                .attr("x", 0)
+                .attr("y", 0)
+                .attr("width",gw)
+                .attr("height",gh)
+                .style("text-anchor", "middle")
+                .attr("dy", "1.0em")
+                .attr("dx", gw/2)
+                .style("font-size", "60px")
+                .style("opacity",1)
+                .text("Press 'Esc' To Skip Animation");
+
+  function addLine(line,dy,size){
+    infoG.append("text")
+          .attr("class","svgtext")
+          .attr("x", 0)
+          .attr("y", 0)
+          .attr("width",gw)
+          .attr("height",gh)
+          .attr("dy", dy)
+          .attr("dx", 100)
+          .style("font-size", size)
+          .style("opacity",1)
+          .text(line);
+  }
+  addLine("Visualization by Daniel Josefson and Juraj Medzihorsky","2.0em","100px");
+  addLine("using [d3.v4.js]","3.0em","100px");
+  addLine("V-Dem Dataset 7.1 by Varieties of Democracy Institute, University of Gothenburg","5.0em","100px");
+  addLine("https://www.v-dem.net/en/data/data-version-7-1/","6.0em","100px");
+
+  addLine("Coppedge, Michael, John Gerring, Staffan I. Lindberg, Svend-Erik Skaaning, Jan Teorell, David Altman, Michael Bernhard,","14.0em","60px");
+  addLine("M. Steven Fish, Adam Glynn, Allen Hicken, Carl Henrik Knutsen, Joshua Krusell, Anna Lührmann, Kyle L. Marquardt,","15.0em","60px");
+  addLine("Kelly McMann, Valeriya Mechkova, Moa Olin, Pamela Paxton, Daniel Pemstein, Josefine Pernes, Constanza Sanhueza Petrarca,","16.0em","60px");
+  addLine("Johannes von Römer, Laura Saxer, Brigitte Seim, Rachel Sigman, Jeffrey Staton, Natalia Stepanova, and Steven Wilson.","17.0em","60px");
+  addLine("2017. “V-Dem Dataset v7.1” Varieties of Democracy (V-Dem) Project.","18.0em","60px");
+
+  addLine("Pemstein, Daniel, Kyle L. Marquardt, Eitan Tzelgov, Yi-ting Wang, Joshua Krusell and Farhad Miri. 2017.","20.0em","60px");
+  addLine("“The V-Dem Measurement Model: Latent Variable Analysis for Cross-National and Cross-Temporal Expert-Coded Data”.","21.0em","60px");
+  addLine("University of Gothenburg, Varieties of Democracy Institute: Working Paper No. 21, 2nd edition.","22.0em","60px");
+
+  var infoLogo = infoG.append("svg:image")
+                .attr('x', gw-2200)
+                .attr('y', gh-600)
+                .attr('width', 1200)
+                .attr('height', 400)
+                .style("opacity", 1)
+                .attr("xlink:href", "misc/V-Dem_institute_Logo.svg");
+
+  var infoLogo2 = infoG.append("svg:image")
+                .attr('x', gw-600)
+                .attr('y', gh-600)
+                .attr('width', 400)
+                .attr('height', 400)
+                .style("opacity", 1)
+                .attr("xlink:href", "misc/gu_seal_2.svg");
+  function endAnimation(){
+    infoG.remove();
+  }
+  infoG.append("g").attr("id","animation")
+                .transition().duration(17000)
+                .on("end",endAnimation)
+                .on("interrupt",endAnimation);
+
+  infoG.transition().duration(2000).style("opacity",1)
+    .transition().delay(12000).duration(2000).style("opacity",0);
+
+  infoText0.transition().delay(6000).duration(2000).style("opacity",0);
+});
+
+var tutorial = d3.select("#tutorial").on("click",function(){
+    d3.selectAll("*").interrupt();
+    var countryPositions = [];
+    var rect,prevX,prevY,nextX,nextY;
+    for(var i=0;i<globalCountries.length;i++){
+      var countryGroup = d3.select("#"+globalCountries[i][2]);
+      rect = countryGroup.select("#drag");
+      prevX = rect.attr("x"),
+      prevY = rect.attr("y"),
+      nextX = wws*globalCountries[i][9],
+      nextY = hws*globalCountries[i][10];
+      if(prevX!=nextX||prevY!=nextY){
+        countryGroup.data([{x: nextX,y: nextY}]);
+        countryGroup.select("#drag").transition().duration(1000).attr("x",nextX).attr("y",nextY);
+        countryGroup.select("#shine").transition().duration(1000).attr("x",nextX-1).attr("y",nextY-1);
+        countryGroup.select("text").transition().duration(1000).attr("x",nextX).attr("y",nextY);
+        countryGroup.select("svg").transition().duration(1000).attr("x",nextX).attr("y",nextY+18);
+        countryPositions.push([countryGroup,prevX,prevY,nextX,nextY]);
       }
-    })
-    .on("contextmenu",function(){
-      d3.event.preventDefault();
-      /*if(isSelected && colorMenu.style("opacity")==0){
-        colorMenu.style("opacity",1)
-                .attr("transform","translate("+d3.mouse(this)[0]+","+d3.mouse(this)[1]+")");
-      }*/
-      if(!isSelected){
-        colorMenu.style("opacity",0)
-                .attr("transform","translate(-1000,-1000)");
+    }
+    zoom.transform(svg, d3.zoomIdentity);
+
+    var canada = d3.select("#CAN");
+    var usa = d3.select("#USA");
+    var mousePos = [0,0];
+
+    var canadaPos = [parseInt(canada.select("#drag").attr("x")),
+                    parseInt(canada.select("#drag").attr("y"))];
+    var usaPos = [parseInt(usa.select("#drag").attr("x")),
+                  parseInt(usa.select("#drag").attr("y"))];
+    var canadaNewPos = [canadaPos[0]+450,canadaPos[1]+200];
+    var colorMenuPos = [canadaNewPos[0]+50,canadaNewPos[1]];
+    var canadaColor = canada.select("#graphSvg").attr("stroke");
+
+    colorMenu.node().parentNode.appendChild(colorMenu.node());
+
+    var tutorialG = svg.append("g")
+                        .attr("width",gw)
+                        .attr("height",gh)
+                        .style("opacity",0);
+    var tutorialRect = tutorialG.append("rect")
+                          .attr("x",0)
+                          .attr("y",0)
+                          .attr("width",gw)
+                          .attr("height",gh)
+                          .attr("fill","white")
+                          .style("opacity",0.8);
+
+    function createText(text,offset,size,opacity,x=0,y=0,w=gw,h=gh){
+      var label = tutorialG.append("text")
+                            .attr("class","svgtext")
+                            .attr("x", x)
+                            .attr("y", y)
+                            .attr("width",w)
+                            .attr("height",h)
+                            .style("text-anchor", "middle")
+                            .attr("dy", offset)
+                            .attr("dx", w/2)
+                            .style("font-size", size)
+                            .style("opacity",opacity)
+                            .text(text);
+      return label;
+    }
+    var tutorialText0 = createText("Press 'Esc' To Skip Animation","1.0em","100px",1) ;
+    var tutorialText = createText("", "4.0em","200px",0);
+    var tutorialText2 = createText("","5.0em","200px",0);
+    var mouseCursor = tutorialG.append("svg:image")
+                              .attr('x', mousePos[0])
+                              .attr('y', 0)
+                              .attr('width', 100)
+                              .attr('height', 100)
+                              .style("opacity", 0)
+                              .attr("xlink:href", "misc/cursor.png");
+
+    var pathData = "M164.80339887498948,309L164.80339887498948,824L329.60679774997897,824"+
+                    "L329.60679774997897,1133L494.4101966249684,1133L494.4101966249684,1442"+
+                    "L659.2135954999579,1442L659.2135954999579,1648L988.8203932499368,1648"+
+                    "L988.8203932499368,1236L824.0169943749474,1236L824.0169943749474,1133"+
+                    "L988.8203932499368,1133L988.8203932499368,412L1153.6237921249265,412"+
+                    "L1153.6237921249265,309L988.8203932499368,309L988.8203932499368,618"+
+                    "L659.2135954999579,618L494.4101966249684,618L494.4101966249684,412"+
+                    "L329.60679774997897,412L329.60679774997897,309L164.80339887498948,309"+
+          "M1318.4271909999159,103L1318.4271909999159,412L1648.033988749895,412"+
+                    "L1648.033988749895,618L1483.2305898749053,618L1483.2305898749053,927"+
+                    "L1648.033988749895,927L1648.033988749895,721L1812.8373876248843,721"+
+                    "L1812.8373876248843,824L2142.444185374863,824L2142.444185374863,1030"+
+                    "L2636.8543819998317,1030L2636.8543819998317,618L2801.657780874821,618"+
+                    "L2801.657780874821,515L2966.4611797498105,515L2966.4611797498105,412"+
+                    "L2636.8543819998317,412L2636.8543819998317,103L2307.247584249853,103"+
+                    "L2307.247584249853,206L2142.444185374863,206L2142.444185374863,309"+
+                    "L1977.6407864998737,309L1977.6407864998737,412L1648.033988749895,412"+
+                    "L1648.033988749895,309L1483.2305898749053,309L1483.2305898749053,103"+
+                    "L1318.4271909999159,103"+
+          "M1483.2305898749053,1236L1483.2305898749053,1545L1318.4271909999159,1545L1318.4271909999159,1648"+
+                    "L1483.2305898749053,1648L1483.2305898749053,1751L1648.033988749895,1751L1648.033988749895,1648"+
+                    "L1812.8373876248843,1648L1812.8373876248843,1854L1977.6407864998737,1854L1977.6407864998737,1957"+
+                    "L2142.444185374863,1957L2142.444185374863,2060L2307.247584249853,2060L2307.247584249853,2163"+
+                    "L2472.0509831248423,2163L2472.0509831248423,2060L2636.8543819998317,2060L2636.8543819998317,1957"+
+                    "L2801.657780874821,1957L2801.657780874821,2163L2966.4611797498105,2163L2966.4611797498105,1957"+
+                    "L2801.657780874821,1957L2801.657780874821,1648L2636.8543819998317,1648L2636.8543819998317,1545"+
+                    "L2801.657780874821,1545L2801.657780874821,1339L2472.0509831248423,1339L2472.0509831248423,1133"+
+                    "L1648.033988749895,1133L1648.033988749895,1236L1483.2305898749053,1236"+
+          "M2472.0509831248423,1030L2472.0509831248423,1339L2966.4611797498105,1339L2966.4611797498105,1133"+
+                    "L3131.2645786248004,1133L3131.2645786248004,1339L3296.06797749979,1339L3296.06797749979,1236"+
+                    "L3460.871376374779,1236L3460.871376374779,1030L3625.6747752497686,1030L3625.6747752497686,1236"+
+                    "L3790.478174124758,1236L3790.478174124758,1339L3625.6747752497686,1339L3625.6747752497686,1442"+
+                    "L3790.478174124758,1442L3790.478174124758,1545L3955.2815729997474,1545L3955.2815729997474,1236"+
+                    "L3790.478174124758,1236L3790.478174124758,1133L4284.888370749726,1133L4284.888370749726,1030"+
+                    "L4120.084971874737,1030L4120.084971874737,927L4284.888370749726,927L4284.888370749726,618"+
+                    "L4120.084971874737,618L4120.084971874737,927L3790.478174124758,927L3790.478174124758,824"+
+                    "L3955.2815729997474,824L3955.2815729997474,618L3790.478174124758,618L3790.478174124758,515"+
+                    "L3460.871376374779,515L3460.871376374779,618L2966.4611797498105,618L2966.4611797498105,721"+
+                    "L2801.657780874821,721L2801.657780874821,824L2636.8543819998317,824L2636.8543819998317,1030"+
+                    "L2472.0509831248423,1030";
+
+    var continent1 = createText("Americas","1.0em","150px",0,450,750,400,200),
+        continent2 = createText("Europe","1.0em","150px",0,2000,450,400,200),
+        continent3 = createText("Africa","1.0em","150px",0,2000,1350,400,200),
+        continent4 = createText("Asia","1.0em","150px",0,3100,750,400,200);
+    var continentPath = tutorialG.append("svg")
+                                .append("path")
+                                .attr("opacity",0)
+                                .attr("fill",d3.rgb(0,0,256))
+                                .attr("stroke",d3.rgb(0,0,256))
+                                .attr("fill-opacity",0.05)
+                                .attr("d",pathData);
+
+    function endAnimation(){
+      if(countryPositions.length){
+        for(var i=0;i<countryPositions.length;i++){
+          nextX = countryPositions[i][1];
+          nextY = countryPositions[i][2];
+          prevX = countryPositions[i][3];
+          prevY = countryPositions[i][4];
+          countryPositions[i][0].data([{x: nextX,y: nextY}]);
+          countryPositions[i][0].select("#drag").transition().duration(200).attr("x",nextX).attr("y",nextY);
+          countryPositions[i][0].select("#shine").transition().duration(200).attr("x",nextX-1).attr("y",nextY-1);
+          countryPositions[i][0].select("svg").transition().duration(200).attr("x",nextX).attr("y",nextY+18);
+          countryPositions[i][0].select("text").transition().duration(200).attr("x",nextX).attr("y",nextY);
+          checkCountryStack(actionCountries[i][0].select("text"),prevX,prevY,nextX,nextY);
+        }
+      }
+
+      usa.transition().duration(1000).attr("transform","");
+      canada.select(".svgtext").transition().duration(1000).attr("opacity",1);
+      canada.select("#graphSvg").transition().duration(1000)
+            .attr("fill",canadaColor).attr("stroke",canadaColor);
+      canada.transition().delay(1000).duration(1000).attr("transform","").on("end",function(){
+        mouseCursor.remove();
+        tutorialG.remove();
+      });
+    }
+    tutorialG.append("g").attr("id","animation")
+                        .transition().duration(79000)
+                        .on("end",endAnimation)
+                        .on("interrupt",endAnimation);
+
+    tutorialG.transition().duration(1000).style("opacity",1)
+            .transition().delay(76000).duration(1000).style("opacity",0);
+    tutorialText0.transition().delay(6000).duration(2000).style("opacity",0);
+
+    tutorialText.transition().delay(1000).duration(2000).text("This visualization lets you explore").style("opacity",1)
+                .transition().delay(2000).duration(2000).style("opacity",0)
+                .transition().duration(2000).text("the data is geographically organized").style("opacity",1)
+                .transition().delay(1000).duration(2000).style("opacity",0);
+    tutorialText2.transition().delay(1000).duration(2000).text("selected indicators from the V-Dem Dataset 7.1").style("opacity",1)
+                .transition().delay(2000).duration(2000).style("opacity",0);
+
+    tutorialRect.transition().delay(12000).duration(1000).style("opacity",0)
+                .transition().delay(5000).duration(1000).style("opacity",0.8);
+
+    continent1.transition().delay(13000).duration(2000).style("opacity",1)
+              .transition().delay(1000).duration(2000).style("opacity",0);
+    continent2.transition().delay(13000).duration(2000).style("opacity",1)
+              .transition().delay(1000).duration(2000).style("opacity",0);
+    continent3.transition().delay(13000).duration(2000).style("opacity",1)
+              .transition().delay(1000).duration(2000).style("opacity",0);
+    continent4.transition().delay(13000).duration(2000).style("opacity",1)
+              .transition().delay(1000).duration(2000).style("opacity",0);
+    continentPath.transition().delay(13000).duration(2000).style("opacity",1)
+                .transition().delay(1000).duration(2000).style("opacity",0);
+
+    tutorialText.transition().delay(19000).duration(2000).text("you can grab a tile").style("opacity",1)
+                .transition().delay(1000).duration(2000).style("opacity",0);
+    tutorialText2.transition().delay(19000).duration(2000).text("with a left click").style("opacity",1)
+                 .transition().delay(1000).duration(2000).style("opacity",0);
+
+    tutorialRect.transition().delay(24000).duration(1000).style("opacity",0);
+    mouseCursor.transition().delay(25000).duration(1000).style("opacity",1)
+              .transition().duration(3000).attr("x",canadaPos[0]).attr("y",canadaPos[1])
+              .transition().duration(800).attr("xlink:href", "misc/grabCursor.png")
+              .transition().duration(200).attr("xlink:href", "misc/grabbingCursor.png")
+              .transition().duration(2000).attr("x",canadaNewPos[0]).attr("y",canadaNewPos[1])
+              .transition().duration(800).attr("xlink:href", "misc/grabCursor.png")
+              .transition().duration(200).attr("xlink:href", "misc/cursor.png")
+              .transition().duration(2000).style("opacity",0);
+
+    canada.transition().delay(30000).duration(2000).attr("transform","translate(450,200)")
+          .transition().duration(1000).attr("transform","translate("+Math.round(450/wws)*wws+","+Math.round(200/hws)*hws+")");
+
+    tutorialRect.transition().delay(35000).duration(1000).style("opacity",0.8)
+              .transition().delay(5000).duration(1000).style("opacity",0);
+
+    tutorialText.transition().delay(36000).duration(2000).text("change the color").style("opacity",1)
+                .transition().delay(1000).duration(2000).style("opacity",0);
+    tutorialText2.transition().delay(36000).duration(2000).text("with a right click").style("opacity",1)
+                .transition().delay(1000).duration(2000).style("opacity",0);
+
+    mouseCursor.transition().delay(42000).duration(1000).style("opacity",1)
+              .transition().duration(1000).attr("x",canadaNewPos[0]+50).attr("y",canadaNewPos[1])
+              .transition().duration(1000).attr("xlink:href", "misc/grabCursor.png")
+              .transition().duration(1000).attr("xlink:href", "misc/pointerCursor.png")
+              .transition().duration(1000).attr("x",canadaNewPos[0]+100).attr("y",canadaNewPos[1]+100)
+              .transition().delay(1000).duration(1000).attr("xlink:href", "misc/cursor.png").style("opacity",0);
+
+    colorMenu.attr("transform","translate("+colorMenuPos+")scale(2)")
+            .transition().delay(45000).duration(200).style("opacity",1)
+            .transition().delay(2000).duration(200).style("opacity",0);
+
+    canada.select("#graphSvg").transition().delay(47000).duration(400)
+          .attr("fill",d3.rgb(237,32,23)).attr("stroke",d3.rgb(237,32,23));;
+
+    tutorialRect.transition().delay(49000).duration(1000).style("opacity",0.8)
+            .transition().delay(5000).duration(1000).style("opacity",0);
+
+    tutorialText.transition().delay(50000).duration(2000).text("zoom in and out").style("opacity",1)
+                .transition().delay(1000).duration(2000).style("opacity",0);
+    tutorialText2.transition().delay(50000).duration(2000).text("with the mouse wheel").style("opacity",1)
+                .transition().delay(1000).duration(2000).style("opacity",0);
+
+    svg.selectAll(".country").each(function(){
+      if(this.id=="CAN"){
+        d3.select(this).transition().delay(56000).duration(2000).attr("transform","scale(2)translate("+Math.round(450/wws)*wws+","+Math.round(200/hws)*hws+")")
+          .transition().delay(1000).duration(2000).attr("transform","translate("+Math.round(450/wws)*wws+","+Math.round(200/hws)*hws+")");
+      }else{
+        d3.select(this).transition().delay(56000).duration(2000).attr("transform","scale(2)")
+          .transition().delay(1000).duration(2000).attr("transform","");
       }
     });
+
+    tutorialRect.transition().delay(61000).duration(1000).style("opacity",0.8)
+            .transition().delay(5000).duration(1000).style("opacity",0);
+
+    tutorialText.transition().delay(62000).duration(2000).text("and stack the tiles").style("opacity",1)
+                .transition().delay(1000).duration(2000).style("opacity",0);
+
+    mouseCursor.transition().delay(68000).duration(1000).style("opacity",1)
+              .transition().duration(2000).attr("x",usaPos[0]).attr("y",usaPos[1])
+              .transition().duration(800).attr("xlink:href", "misc/grabCursor.png")
+              .transition().duration(200).attr("xlink:href", "misc/grabbingCursor.png")
+              .transition().duration(2000).attr("x",canadaNewPos[0]).attr("y",canadaNewPos[1])
+              .transition().duration(800).attr("xlink:href", "misc/grabCursor.png")
+              .transition().duration(200).attr("xlink:href", "misc/cursor.png")
+              .transition().delay(1000).duration(1000).style("opacity",0);
+    usa.transition().delay(72000).duration(2000).attr("transform","translate(450,100)")
+        .transition().duration(1000).attr("transform","translate("+Math.round(450/wws)*wws+","+Math.round(100/hws)*hws+")");
+    canada.select(".svgtext").transition().delay(74000).duration(200).attr("opacity",0);
+});
 
 var color = d3.rgb(220,220,220);
 var colorPalette = [[d3.rgb(7,15,132),d3.rgb(146,19,19),d3.rgb(0,120,42),d3.rgb(0,0,0)],
                     [d3.rgb(0,0,256),d3.rgb(237,32,23),d3.rgb(144,200,152),d3.rgb(170,170,170)]];
 
 var globalCountries = [];
-//var countryIds = [];
-//var countryPolyarchies = [];
+var globalCountryYears = [["",[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]
+                                      ,[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]]];
+var globalIntervals = [0];
+var intervalIndex = 95;
+var graphIndex = 4;
 
-var startYear = d3.select("#startYear").on("input", function(){
-  if(parseInt(this.value)>=parseInt(this.min) && parseInt(this.value)<=parseInt(this.max)){
-    yearX = parseInt(this.value);
-    endYear.attr("min",yearX+1);
+var actions = [];
+var actionIndex = -1,
+    actionState = 0;
 
-    //svg.select("#LVA").selectAll("path").each(function(){redrawPath();});
-    //svg.selecAll("g").transition().duration(2000);
-    clearTimeout(redrawTimer);
-    svg.selectAll("#graph").remove();
-    redrawTimer = setTimeout(drawGraphs, 500);
+function addAction(action){
+  if(actionState){
+    actions.length = actionIndex;
+  }else{
+    if(actionIndex+1!=actions.length){
+      actions.length = actionIndex+1;
+    }
+    actionIndex++;
+  }
+  actions.push(action);
+  actionState = 0;
+}
+function undoAction(){
+  if((actionIndex!=0||!actionState)&&actionIndex>-1){
+    if(actionState&&actionIndex>0)actionIndex--;
+    else actionState = 1;
+    actions[actionIndex](1);
+  }
+}
+function redoAction(){
+  if((actionIndex+1!=actions.length||actionState)&&actionIndex>-1){
+    if(!actionState&&actionIndex+1<actions.length)actionIndex++;
+    else actionState = 0;
+    actions[actionIndex](0);
+  }
+}
+
+function changeYears(nextYearX,nextYearY){
+  if(nextYearX!=yearX || nextYearY!=yearY){
+    var prevYearX = yearX,
+        prevYearY = yearY;
+    yearX = nextYearX;
+    yearY = nextYearY;
+    addAction(function(undo){
+      yearX = undo ? prevYearX : nextYearX;
+      yearY = undo ? prevYearY : nextYearY;
+      startYear.property("value",yearX);
+      endYear.property("value",yearY);
+      drawGraphs();
+    });
+    drawGraphs();
+  }
+}
+
+function redrawTiles(){
+  changeYears(parseInt(startYear.property("value")),endYear.property("value"));
+}
+function changeIntervals(nextIndex){
+  var prevIndex = intervalIndex;
+  addAction(function(undo){
+    intervalIndex = undo ? prevIndex : nextIndex;
+    intervalInput.property("value",intervalIndex);
+    drawGraphs();
+  });
+  intervalIndex = nextIndex;
+  drawGraphs();
+}
+
+function checkCountryStack(countryText,prevX,prevY,nextX,nextY){
+  var lastText;
+  d3.selectAll(".svgtext").each(function(){
+    var thisText = d3.select(this);
+    if(parseInt(thisText.attr("x")).toFixed(2)==parseInt(nextX).toFixed(2) &&
+        parseInt(thisText.attr("y")).toFixed(2)==parseInt(nextY).toFixed(2) &&
+        thisText.text() != countryText.text()){
+      thisText.transition("transparentText").duration(200).attr("opacity",0);
+    }else if(parseInt(thisText.attr("x")).toFixed(2)==parseInt(prevX).toFixed(2) &&
+        parseInt(thisText.attr("y")).toFixed(2)==parseInt(prevY).toFixed(2) &&
+        thisText.text() != countryText.text()){
+      lastText = thisText;
+    }
+  });
+  if(lastText)lastText.transition("transparentText").duration(500).attr("opacity",1);
+}
+
+var startYear = d3.select("#startYear").on("keyup",function(){
+                  if(d3.event.key=="Enter"){
+                    this.blur();
+                    if(this.value>=minYear && this.value<endYear.property("value")){
+                      changeYears(parseInt(this.value),yearY);
+                    }
+                  }
+                });
+var endYear = d3.select("#endYear").on("keyup",function(){
+                  if(d3.event.key=="Enter"){
+                    this.blur();
+                    if(this.value<=maxYear && this.value>startYear.property("value")){
+                      changeYears(yearX,parseInt(this.value));
+                    }
+                  }
+                });
+
+var intervalInput = d3.select("#interval").on("keyup",function(){
+    if(d3.event.key=="Enter"){
+      if(parseInt(this.value)>0 && parseInt(this.value)<=99){
+        if(parseInt(this.value)!=intervalIndex)changeIntervals(parseInt(this.value));
+        this.blur();
+      }
+    }
+  });
+
+var selection = d3.select("#select").on("change",function(){
+  var prevIndex = graphIndex,
+      nextIndex = parseInt(this.value);
+  if(prevIndex!=nextIndex){
+    addAction(function(undo){
+        graphIndex = undo ? prevIndex : nextIndex;
+        selection.property("value",graphIndex);
+        drawGraphs();
+    });
+    graphIndex = nextIndex;
+    drawGraphs();
   }
 });
-var endYear = d3.select("#endYear").on("input", function(){
-  if(parseInt(this.value)>=parseInt(this.min) && parseInt(this.value)<=parseInt(this.max)){
-    yearY = parseInt(this.value);
-    startYear.attr("max",yearY-1);
-    clearTimeout(redrawTimer);
-    svg.selectAll("#graph").remove();
-    redrawTimer = setTimeout(drawGraphs, 500);
+
+d3.select("#startYearUp").on("mousedown", function(){
+  this.src = "misc/buttonUpClicked.svg";
+  clearTimeout(redrawTimer);
+  mouseholdTimer = setInterval(function(){
+    var value = parseInt(startYear.property("value"));
+    if(value+1<parseInt(endYear.property("value")))startYear.property("value",value+1);
+  },100);
+}).on("mouseup mouseout",function(){
+  this.src = "misc/buttonUp.svg";
+  clearInterval(mouseholdTimer);
+  redrawTiles();
+});
+d3.select("#startYearDown").on("mousedown", function(){
+  this.src = "misc/buttonDownClicked.svg";
+  clearTimeout(redrawTimer);
+  mouseholdTimer = setInterval(function(){
+    var value = parseInt(startYear.property("value"));
+    if(value>minYear)startYear.property("value",value-1);
+  },100);
+}).on("mouseup mouseout",function(){
+  this.src = "misc/buttonDown.svg";
+  clearInterval(mouseholdTimer);
+  redrawTiles();
+});
+
+d3.select("#endYearUp").on("mousedown", function(){
+  this.src = "misc/buttonUpClicked.svg";
+  clearTimeout(redrawTimer);
+  mouseholdTimer = setInterval(function(){
+    var value = parseInt(endYear.property("value"));
+    if(value<maxYear)endYear.property("value",value+1);
+  },100);
+}).on("mouseup mouseout",function(){
+  this.src = "misc/buttonUp.svg";
+  clearInterval(mouseholdTimer);
+  redrawTiles();
+});
+d3.select("#endYearDown").on("mousedown", function(){
+  this.src = "misc/buttonDownClicked.svg";
+  clearTimeout(redrawTimer);
+  mouseholdTimer = setInterval(function(){
+    var value = parseInt(endYear.property("value"));
+    if(value-1>parseInt(startYear.property("value")))endYear.property("value",value-1);
+  },100);
+}).on("mouseup mouseout",function(){
+  this.src = "misc/buttonDown.svg";
+  clearInterval(mouseholdTimer);
+  redrawTiles();
+});
+
+d3.select("#intervalsUp").on("mousedown", function(){
+  this.src = "misc/buttonUpClicked.svg";
+  clearTimeout(redrawTimer);
+  mouseholdTimer = setInterval(function(){
+    var value = parseInt(intervalInput.property("value"));
+    if(value<99)intervalInput.property("value",value+1);
+  },100);
+}).on("mouseup mouseout",function(){
+  this.src = "misc/buttonUp.svg";
+  clearInterval(mouseholdTimer);
+  if(intervalIndex!=parseInt(intervalInput.property("value"))){
+    changeIntervals(parseInt(intervalInput.property("value")));
+  }
+});
+d3.select("#intervalsDown").on("mousedown", function(){
+  this.src = "misc/buttonDownClicked.svg";
+  clearTimeout(redrawTimer);
+  mouseholdTimer = setInterval(function(){
+    var value = parseInt(intervalInput.property("value"));
+    if(value-1>0)intervalInput.property("value",value-1);
+  },100);
+}).on("mouseup mouseout",function(){
+  this.src = "misc/buttonDown.svg";
+  clearInterval(mouseholdTimer);
+  if(intervalIndex!=parseInt(intervalInput.property("value"))){
+    changeIntervals(parseInt(intervalInput.property("value")));
   }
 });
 
+function createMenus(){
+  svgMenu = svg.append("g").attr("transform","translate(-1000,-1000)")
+                          .attr("id","svgmenu")
+                          .on("click",function(){
+                            hideMenu(svgMenu);
+                          }).style("opacity",0);
+  svgMenu.append("rect").attr("x",0)
+                        .attr("y",0)
+                        .attr("rx", 6)
+                        .attr("ry", 6)
+                        .attr("width",162)
+                        .attr("height",147)
+                        .attr("fill",d3.rgb(100,100,100));
+  svgMenu.append("rect").attr("x",3)
+                        .attr("y",4)
+                        .attr("rx",6)
+                        .attr("ry",6)
+                        .attr("width",156)
+                        .attr("height",17)
+                        .attr("fill",d3.rgb(248,248,248))
+                        .on("click", function() { d3.event.stopPropagation(); });
+  svgMenu.append("text").attr("class","svgtext")
+                        .attr("x", 3)
+                        .attr("y", 4)
+                        .style("text-anchor", "middle")
+                        .attr("dy", ".8em")
+                        .attr("dx", 80)
+                        .style("font-size", "18px")
+                        .text("Tile Menu");
 
+  function addMenu(y,menuText,clickFunction){
+    svgMenu.append("rect").attr("x",3)
+                          .attr("y",y)
+                          .attr("rx",6)
+                          .attr("ry",6)
+                          .attr("width",156)
+                          .attr("height",20)
+                          .attr("cursor","pointer")
+                          .attr("fill",d3.rgb(248,248,248))
+                          .on("mouseover",function(){
+                            d3.select(this).attr("fill",d3.rgb(200,220,240))
+                          }).on("mouseout",function(){
+                            d3.select(this).attr("fill",d3.rgb(248,248,248))
+                          }).on("click",clickFunction);
+    svgMenu.append("text").attr("class","svgtext")
+                          .attr("x", 3)
+                          .attr("y", y)
+                          .style("text-anchor", "middle")
+                          .attr("dy", ".8em")
+                          .attr("dx", 80)
+                          .style("font-size", "18px")
+                          .text(menuText)
+                          .attr("cursor", "pointer");
+  }
 
-function createColorMenu(){
-  colorMenu = svg.append("g").attr("transform","translate(-1000,-1000)")
+  addMenu(22,"Reset Tiles",function(){
+    var actionCountries = [];
+    var rect,prevX,prevY,nextX,nextY;
+    for(var i=0;i<globalCountries.length;i++){
+      var countryGroup = d3.select("#"+globalCountries[i][2]);
+      rect = countryGroup.select("#drag");
+      prevX = rect.attr("x"),
+      prevY = rect.attr("y"),
+      nextX = wws*globalCountries[i][9],
+      nextY = hws*globalCountries[i][10];
+      if(prevX!=nextX||prevY!=nextY){
+        countryGroup.data([{x: nextX,y: nextY}]);
+        countryGroup.select("#drag").transition().duration(200).attr("x",nextX).attr("y",nextY);
+        countryGroup.select("#shine").transition().duration(200).attr("x",nextX-1).attr("y",nextY-1);
+        countryGroup.select("text").transition().duration(200).attr("x",nextX).attr("y",nextY);
+        countryGroup.select("svg").transition().duration(200).attr("x",nextX).attr("y",nextY+18);
+        actionCountries.push([countryGroup,prevX,prevY,nextX,nextY]);
+        checkCountryStack(countryGroup.select("text"),prevX,prevY,nextX,nextY);
+      }
+    }
+    if(actionCountries.length){
+      addAction(function(undo){
+        var actionPrevX,actionPrevY,actionNextX,actionNextY;
+        for(var i=0;i<actionCountries.length;i++){
+          actionNextX = undo ? actionCountries[i][1] : actionCountries[i][3],
+          actionNextY = undo ? actionCountries[i][2] : actionCountries[i][4],
+          actionPrevX = undo ? actionCountries[i][3] : actionCountries[i][1],
+          actionPrevY = undo ? actionCountries[i][4] : actionCountries[i][2];
+          actionCountries[i][0].data([{x: actionNextX,y: actionNextY}]);
+          actionCountries[i][0].select("#drag").transition().duration(200).attr("x",actionNextX).attr("y",actionNextY);
+          actionCountries[i][0].select("#shine").transition().duration(200).attr("x",actionNextX-1).attr("y",actionNextY-1);
+          actionCountries[i][0].select("svg").transition().duration(200).attr("x",actionNextX).attr("y",actionNextY+18);
+          actionCountries[i][0].select("text").transition().duration(200).attr("x",actionNextX).attr("y",actionNextY);
+          checkCountryStack(actionCountries[i][0].select("text"),actionPrevX,actionPrevY,actionNextX,actionNextY);
+        }
+      });
+    }
+  });
+  addMenu(42,"Reset Years",function(){
+    if(startYear.property("value")!=minYear||endYear.property("value")!=maxYear){
+      startYear.property("value",minYear);
+      endYear.property("value",maxYear);
+      changeYears(minYear,maxYear);
+    }
+  });
+  addMenu(62,"Reset Zoom",function(){
+    zoom.transform(svg, d3.zoomIdentity);
+  });
+  addMenu(82,"Transparent Tiles",function(){
+    if(d3.select(this.nextSibling).text()=="Transparent Tiles"){
+      d3.select(this.nextSibling).text("Non-transparent Tiles");
+      alpha = 0;
+      d3.selectAll(".dragrect").each(function(){
+        d3.select(this).attr("fill-opacity",alpha);
+      });
+    }else{
+      d3.select(this.nextSibling).text("Transparent Tiles");
+      alpha = 0.2;
+      d3.selectAll(".dragrect").each(function(){
+        d3.select(this).attr("fill-opacity",alpha);
+      });
+    }
+  });
+  addMenu(102,"Undo Action",undoAction);
+  addMenu(122,"Redo Action",redoAction);
+
+  colorMenu = svg.append("g")
+                .attr("id","#colorMenu")
+                .attr("transform","translate(-1000,-1000)")
                 .style("opacity",0);
+  colorMenu.append("rect")
+          .attr("x",-2)
+          .attr("y",-2)
+          .attr("rx",6)
+          .attr("ry",6)
+          .attr("width",124)
+          .attr("height",64)
+          .attr("fill",d3.rgb(100,100,100));
   for(var i=0;i<2;i++){
     for(var j=0;j<4;j++){
       colorMenu.append("rect")
-              .attr("x",j*20)
-              .attr("y",i*20)
-              .attr("width",20)
-              .attr("height",20)
+              .attr("x",j*30)
+              .attr("y",i*30)
+              .attr("rx",6)
+              .attr("ry",6)
+              .attr("width",30)
+              .attr("height",30)
               .attr("fill",colorPalette[i][j])
               .attr("stroke",d3.rgb(40,40,40))
-              .attr("cursor","crosshair")
+              .attr("cursor","pointer")
               .on("click",function(){
-                color = d3.select(this).style("fill");
-                selectedGraph.attr("fill",color)
-                            .attr("stroke",color);
+                d3.select(this).attr("cursor","auto")
+                color = d3.select(this).attr("fill");
+                var prevColor = selectedGraph.attr("fill");
+                if(color!=prevColor){
+                  var actionGraph = selectedGraph;
+                  var nextColor = color;
+                  addAction(function(undo){
+                    var actionColor;
+                    if(undo)actionColor=prevColor;
+                    else actionColor=nextColor;
+                    actionGraph.transition()
+                                .duration(100)
+                                .attr("fill",actionColor)
+                                .attr("stroke",actionColor);
+                  });
+
+                  selectedGraph.transition()
+                              .duration(200)
+                              .attr("fill",color)
+                              .attr("stroke",color);
+                }
+                var colorRect = d3.select(this);
+                setTimeout(function(){
+                  colorRect.attr("cursor","pointer");
+                },100);
+                colorMenu.style("opacity",0).attr("transform","translate(-1000,1000)");
               });
     }
   }
 }
 
-function createNew(rx,ry,country,countryId){
-  var drag = d3.behavior.drag()
-    .origin(Object)
-    .on("drag", dragmove)
-    .on("dragend",dragend)
-    .on("dragstart",dragstart);
 
-  var newg = svg.append("g").data([{x: rx, y: ry}])
-                            .attr("id",countryId)
+function createNewTile(country){
+  var drag = d3.drag()
+    .on("drag", dragmove)
+    .on("end",dragend)
+    .on("start",dragstart);
+  var newg = svg.append("g").data([{x: wws*country[9], y: hws*country[10]}])
+                            .attr("id",country[2])
+                            .attr("class","country")
+                            .call(drag)
                             .on("contextmenu",function(){
-                              if(colorMenu.style("opacity")==0 || selectedGraph!=graph){
                                 selectedGraph = graph;
-                                colorMenu.style("opacity",1)
-                                        .attr("transform","translate("+d3.mouse(this)[0]+","+d3.mouse(this)[1]+")");
-                              }else if(colorMenu.style("opacity")==1){
-                                colorMenu.style("opacity",0)
-                                        .attr("transform","translate(-1000,-1000)");
-                              }
-                            })
+                                if(svgMenu.style("opacity")==1){
+                                  hideMenu(svgMenu);
+                                }else{
+                                  showMenu(colorMenu);
+                                }
+                             })
 			    .on("mouseover",function(){
-              //if(colorMenu.style("opacity")==0)selectedGraph = graph;
               isSelected = 1;
 				      dragrect.attr("fill-opacity", alpha+0.3);})
 			   .on("mouseout",function(){
               isSelected = 0;
 				      dragrect.attr("fill-opacity", alpha);});
+  newg.attr("transform","translate(0,0)");
 
-  var dragrect = newg.append("rect")
-    .attr("x", function(d) { return d.x; })
-    .attr("y", function(d) { return d.y; })
+  var shinerect = newg.append("rect")
+    .attr("class","dragrect")
+    .attr("id","shine")
+    .attr("x", function(d) { return d.x-1; })
+    .attr("y", function(d) { return d.y-1; })
+    .attr("rx", 6)
+    .attr("ry", 6)
     .attr("height", height)
     .attr("width", width)
-    .attr("fill", d3.rgb(220,220,220))
+    .attr("stroke-width",0.3)
+    .attr("stroke",d3.rgb(220,220,220))
+    .style("stroke-dasharray",width-6+","+parseInt(width+height-10))
+    .attr("fill", d3.rgb(240,240,240))
     .attr("fill-opacity", alpha)
-    .attr("cursor", "grab")
-    .call(drag);
+    .attr("cursor", "grab");
+
+  var dragrect = newg.append("rect")
+    .attr("class","dragrect")
+    .attr("id","drag")
+    .attr("x", function(d) { return d.x; })
+    .attr("y", function(d) { return d.y; })
+    .attr("rx", 6)
+    .attr("ry", 6)
+    .attr("height", height)
+    .attr("width", width)
+    .attr("stroke","black")
+    .attr("stroke-opacity",0.4)
+    .attr("stroke-width",1)
+    .style("stroke-dasharray","0,"+parseInt(width-6)+","+parseInt(width+height-6)+","+height)
+    .attr("fill", d3.rgb(230,230,230))
+    .attr("fill-opacity", alpha)
+    .attr("cursor", "grab");
 
   var text = newg.append("text")
     .attr("class","svgtext")
     .attr("x", function(d) { return d.x; })
     .attr("y", function(d) { return d.y; })
     .style("text-anchor", "middle")
-    .attr("dy", ".8em")
+    .attr("dy", "0.8em")
     .attr("dx", width/2)
     .style("font-size", "20px")
-    .text(country)
-    .attr("cursor", "grab")
-    .call(drag);
+    .text(country[0])
+    .attr("cursor", "grab");
+
+  if(text.node().getComputedTextLength()>width-8){
+    text.text(country[2]);
+  }
 
   var graph = newg.append("svg")
+    .attr("id","graphSvg")
     .attr("x", function(d) { return d.x; })
-    .attr("y", function(d) { return d.y; })
-    .attr("fill", "blue")
-    .attr("stroke", "blue")
+    .attr("y", function(d) { return d.y+18; })
+    .attr("rx", 6)
+    .attr("ry", 6)
+    .attr("fill", d3.rgb(0,0,256))
+    .attr("stroke", d3.rgb(0,0,256))
     .attr("cursor", "grab")
-    .attr("height", height)
+    .attr("height", height-15)
     .attr("stroke-width", 1)
-    .attr("width", 0)
-    .call(drag);
+    .attr("width", 0);
 
   var dragInitiated = false;
+  var ix,iy,ex,ey;
+  var grabPos;
   function dragmove(d){
     if(dragInitiated){
-      tx = Math.max(0, Math.min(gw - width, d3.event.x));
-      ty = Math.max(0, Math.min(gh - height, d3.event.y));
+      var c = d3.mouse(this)
+
+      tx = Math.max(0, Math.min(gw - width, c[0]/0.35-ex));
+      ty = Math.max(0, Math.min(gh - height, c[1]/0.35-ey));
       dragrect.attr("x",d.x=tx).attr("y",d.y=ty);
       text.attr("x",d.x=tx).attr("y",d.y=ty);
-      graph.attr("x",d.x=tx).attr("y",d.y=ty);
+      graph.attr("x",d.x=tx).attr("y",d.y=ty+18);
+      shinerect.attr("x",d.x=tx-1).attr("y",d.y=ty-1);
     }
   }
 
   function dragstart(d){
-    if(d3.event.sourceEvent.which == 1){//d3.event.sourceEvent.button == 0
-      colorMenu.style("opacity",0)
-              .attr("transform","translate(-1000,-1000)");
-      dragInitiated = true;
-      this.parentNode.parentNode.appendChild(this.parentNode);
-      //newg.style("opacity", alpha+0.3);
-      dragrect.attr("cursor", "grabbing");
-      text.attr("cursor", "grabbing");
-    }else if(d3.event.sourceEvent.which == 3){
-      colorMenu.node().parentNode.appendChild(colorMenu.node());
-      //graph.attr("fill",color).attr("stroke",color);
-      //selectedGraph = graph;//d3.select(this);
-
-      //colorMenu.style("opacity",1)
-      //        .attr("transform","translate("+d3.mouse(this)[0]+","+d3.mouse(this)[1]+")");
-    }
+    ix = parseInt(dragrect.attr("x"));
+    iy = parseInt(dragrect.attr("y"));
+    ex = d3.mouse(this)[0]/0.35 - ix;
+    ey = d3.mouse(this)[1]/0.35 - iy;
+    hideMenu(svgMenu);
+    hideMenu(colorMenu);
+    dragInitiated = true;
+    this.parentNode.appendChild(this);
+    dragrect.attr("cursor", "grabbing").transition().duration(200)
+            .attr("stroke-width",1.5)
+            .style("stroke-dasharray","0,"+parseInt(width-6.5)+","+parseInt(width+height-4)+","+height)
+            .attr("height", height+0.5).attr("width", width+0.5);
+    text.attr("cursor", "grabbing").transition().duration(200).style("font-size", "20.2px").attr("dy", "0.79em");
+    graph.attr("cursor", "grabbing");
+    shinerect.attr("cursor", "grabbing");
   }
 
   function dragend(d){
     if(dragInitiated){
       tx = Math.round(d.x/wws)*wws;
       ty = Math.round(d.y/hws)*hws;
-      //newg.style("opacity", alpha);
-      dragrect.attr("x",d.x=tx).attr("y",d.y=ty).attr("cursor", "grab");//.attr("fill-opacity", alpha);
-      text.attr("x",d.x=tx).attr("y",d.y=ty).attr("cursor", "grab");
-      graph.attr("x",d.x=tx).attr("y",d.y =ty).attr("cursor","grab");
+      dragrect.attr("cursor","grab").transition().duration(200).attr("x",d.x=tx).attr("y",d.y=ty)
+              .attr("stroke-width",1).attr("stroke-opacity",0.35)
+              .attr("height", height).attr("width", width)
+              .style("stroke-dasharray","0,"+parseInt(width-6)+","+parseInt(width+height-6)+","+height);
+      shinerect.attr("cursor","grab").transition().duration(200).attr("height", height).attr("width", width).attr("x",d.x=tx-1).attr("y",d.y=ty-1);
+      text.attr("cursor","grab").transition("textPosition").duration(200).attr("x",d.x=tx).attr("y",d.y=ty).style("font-size", "20px").attr("dy", "0.8em");
+      graph.attr("cursor","grab").transition().duration(200).attr("x",d.x=tx).attr("y",d.y=ty+18);
+
       dragInitiated = false;
+
+      if(tx!=ix || ty!=iy){
+        checkCountryStack(text,ix,iy,tx,ty);
+        var actionDragrect = dragrect;
+        var actionShinerect = shinerect;
+        var actionText = text;
+        var actionGraph = graph;
+        var actionGroup = newg;
+        var prevX = ix,
+            prevY = iy,
+            nextX = tx,
+            nextY = ty;
+        addAction(function(undo){
+          var actionNextX = undo ? prevX : nextX,
+              actionNextY = undo ? prevY : nextY,
+              actionPrevX = undo ? nextX : prevX,
+              actionPrevY = undo ? nextY : prevY;
+          actionGroup.data([{x: actionNextX,y: actionNextY}]);
+          actionDragrect.transition().duration(200).attr("x",actionNextX).attr("y",actionNextY);
+          actionShinerect.transition().duration(200).attr("x",actionNextX-1).attr("y",actionNextY-1);
+          actionGraph.transition().duration(200).attr("x",actionNextX).attr("y",actionNextY+18);
+          actionText.transition("textPosition").duration(200).attr("x",actionNextX).attr("y",actionNextY);
+          checkCountryStack(actionText,actionPrevX,actionPrevY,actionNextX,actionNextY);
+        });
+      }
     }
   }
 }
-function NormSInv(p) {
-    var a1 = -39.6968302866538, a2 = 220.946098424521, a3 = -275.928510446969;
-    var a4 = 138.357751867269, a5 = -30.6647980661472, a6 = 2.50662827745924;
-    var b1 = -54.4760987982241, b2 = 161.585836858041, b3 = -155.698979859887;
-    var b4 = 66.8013118877197, b5 = -13.2806815528857, c1 = -7.78489400243029E-03;
-    var c2 = -0.322396458041136, c3 = -2.40075827716184, c4 = -2.54973253934373;
-    var c5 = 4.37466414146497, c6 = 2.93816398269878, d1 = 7.78469570904146E-03;
-    var d2 = 0.32246712907004, d3 = 2.445134137143, d4 = 3.75440866190742;
-    var p_low = 0.02425, p_high = 1 - p_low;
-    var q, r;
-    var retVal;
 
-    if ((p < 0) || (p > 1)){
-        alert("NormSInv: Argument out of range.");
-        retVal = 0;
-    }else if (p < p_low){
-        q = Math.sqrt(-2 * Math.log(p));
-        retVal = (((((c1 * q + c2) * q + c3) * q + c4) * q + c5) * q + c6) / ((((d1 * q + d2) * q + d3) * q + d4) * q + 1);
-    }else if (p <= p_high){
-        q = p - 0.5;
-        r = q * q;
-        retVal = (((((a1 * r + a2) * r + a3) * r + a4) * r + a5) * r + a6) * q / (((((b1 * r + b2) * r + b3) * r + b4) * r + b5) * r + 1);
-    }else{
-        q = Math.sqrt(-2 * Math.log(1 - p));
-        retVal = -(((((c1 * q + c2) * q + c3) * q + c4) * q + c5) * q + c6) / ((((d1 * q + d2) * q + d3) * q + d4) * q + 1);
-    }
-
-    return retVal;
+function drawGraph(polyarchies){;
+  polyarchies[2][0].transition()
+                    .delay(100)
+                    .ease(d3.easeLinear)
+                    .duration(2000)
+                    .attr("d", polyarchies[3][0]);
+  polyarchies[2][1].transition()
+                    .delay(100)
+                    .ease(d3.easeLinear)
+                    .duration(2000)
+                    .attr("d",polyarchies[3][1]);
 }
 
-function oneTile(countryId,polyarchies,years,polyarchies2){
-  var g = d3.select("#"+countryId.replace(/"/g,""));
+function computeGraph(polyarchies){
+  var countryData = "";
+  var countryData2 = "";
+  var countryData3 = "";
+  var countryData4 = "";
+  var countryData5 = "";
+
+  var x,z,y;
+  var previousYear = polyarchies[1][0]-1;
+
+  for(var i=0;i<polyarchies[1].length;i++){
+    if(polyarchies[1][i]-1!=previousYear){
+      countryData5 += countryData;
+      countryData4 += countryData2+countryData3;
+      countryData2 = "";
+      countryData3 = "";
+      countryData = "";
+    }
+    previousYear = polyarchies[1][i];
+    x = (polyarchies[1][i]-yearX)*interval+4;
+    y = 80 - polyarchies[graphIndex][i]*74;
+    z = 50*globalIntervals[intervalIndex]*polyarchies[graphIndex+17][i];
+
+    if(countryData)countryData += "L" + x + "," + y;
+    else countryData = "M" + x + "," + y;
+
+    if(countryData2)countryData2 += "L" + x + "," + parseFloat(y+z);
+    else countryData2 = "M" + x + "," + parseFloat(y-z) + "L" + x + "," + parseFloat(y+z);
+    countryData3 = "L" + x + "," + parseFloat(y-z) + countryData3;
+  }
+  polyarchies[3][0] = countryData5 + countryData;
+  polyarchies[3][1] = countryData4 + countryData2 + countryData3;
+}
+
+function oneTile(polyarchies){
+  var g = d3.select("#"+polyarchies[0].replace(/"/g,""));
   if(!g.empty()){
     var countryGraph = g.select("svg");
-    countryGraph.attr("width",0);
-    var countryData = [];
-    var countryData2 = [];
-    var previousYear = years[0]-1;
-
-    var x = [],
-        y = [],
-        z = [];
-    var y2;
-
-    for(var i=0;i<polyarchies.length;i++){
-      if(years[i]-1!=previousYear){
-        countryGraph.append("path").attr("id","graph")
-                                   .attr("d", lineFunction(countryData))
-                                   //.attr("stroke-width", 1)
-                                   .attr("fill", "none");
-
-        for(var j=x.length-1;j>-1;j--){
-          y2 = 100 - (y[j]*80+(80*z[j]));
-          countryData2.push(x[j].toString() + "," + y2.toString() + " ");
-        }
-        countryGraph.append("polygon").attr("id","graph")
-                                      .attr("points",countryData2)
-                                      .attr("fill-opacity",0.2)
-                                      .attr("stroke-opacity",0.2);
-        countryData = [];
-        countryData2 = [];
-        x = [];
-        y = [];
-        z = [];
-      }
-      previousYear = years[i];
-
-      x.push((years[i]-yearX)*interval*((width-(8*interval))/last)+(4*interval));
-      y.push(polyarchies[i]);
-      z.push(polyarchies2[i]);
-      y2 = 100 - (polyarchies[i]*80-(80*z[z.length-1]));
-      countryData2.push(x[x.length-1].toString() + "," + y2.toString() + " ");
-      countryData.push({"x": x[x.length-1],"y": 100 - (polyarchies[i]*80)});
-    }
-    for(var i=x.length-1;i>-1;i--){
-      y2 = 100 - (y[i]*80+(80*z[i]));
-      countryData2.push(x[i].toString() + "," + y2.toString() + " ");
-    }
-    countryGraph.append("polygon").attr("id","graph")
-                                  .attr("points",countryData2)
-                                 .attr("fill-opacity",0.2)
-                                 .attr("stroke-opacity",0.2);
-    countryGraph.append("path").attr("id","graph")
-                               .attr("d", lineFunction(countryData))
-                               .attr("fill", "none");
-
-/*                               */
-   //countryGraph.attr("width",width);
-    //if(countryGraph.attr("width")==0){
-      countryGraph.transition()
-                  .ease("Linear")
-                  .duration(2000)
-                  .attr("width",width);
-    /*}else{
-      countryGraph.transition()
-                   //.delay(500)
-                   .ease("Linear")
-                   .duration(400)
-                   .attr("width",0);
-      countryGraph.transition().delay(400)
-                   .ease("Linear")
-                   .duration(2000)
-                   .attr("width",width);
-    }*/
-  }else alert(countryId);
+    polyarchies[2].push(countryGraph.append("path").attr("id","graph")
+                                                  .attr("fill", "none"));
+    polyarchies[2].push(countryGraph.append("path").attr("id","graph")
+                                                     .attr("fill-opacity",0.2)
+                                                     .attr("stroke-opacity",0));
+    polyarchies[2].push(countryGraph);
+  }
 }
 
 function drawGraphs(){
-  var countryId = globalCountries[0][1];
-  var years = [];
-  var polyarchies = [];
-  var polyarchies2 = [];
+  interval = (width-8)/(yearY-yearX);
 
-  var timeline = yearY - yearX;
-  interval = (width-(8*(width/timeline)))/timeline;
-  last = timeline*interval;
-  for(var i=0;i<globalCountries.length;i++){
-    if(globalCountries[i][1]!=countryId){
-      oneTile(countryId,polyarchies,years,polyarchies2);
-      polyarchies = [];
-      polyarchies2 = [];
-      years = [];
-      countryId = globalCountries[i][1];
-    }
-    if(!isNaN(globalCountries[i][3])){
-      if(globalCountries[i][5]>yearX && globalCountries[i][5]<yearY){
-        polyarchies.push(globalCountries[i][3]);
-        polyarchies2.push(globalCountries[i][4]);
-        years.push(globalCountries[i][5]);
-      }
+var t = performance.now();
+  for(var i=0;i<globalCountryYears.length;i++)computeGraph(globalCountryYears[i]);
+  console.log("compute:",performance.now()-t);t=performance.now();
+  for(var i=0;i<globalCountryYears.length;i++)drawGraph(globalCountryYears[i]);
+  console.log("draw:",performance.now()-t);
+}
+
+function loadIntervals(intervals){
+  for(var i=1;i<intervals.length;i++){
+    globalIntervals.push(intervals[i].split(",")[1]);
+  }
+}
+
+function loadDescriptions(descriptions){
+  var description;
+  for(var i=1;i<descriptions.length;i++){
+    description = descriptions[i].split(",")[1];
+    if(description){
+      selection.append("option")
+              .attr("value",i+3)
+              .text(description);
     }
   }
 }
 
-function tiles(countries,countryYears){
-  var tabs = [];
-  var newCountry = "";
-  for(var i=1;i<countries.length;i++){
-      tabs = countries[i].split(",");
-      if(countries[i]!=""){
-        if(tabs[0].length>22)tabs[0]=tabs[2];
-        createNew(wws*tabs[9],hws*tabs[10],tabs[0],tabs[2]);//!isNaN(tabs[9])
-      }
-  }
+function loadData(countryYears){
+  var countryYear = [];
+  globalCountryYears[0][0] = countryYears[1].split(",")[1];
   for(var i=1;i<countryYears.length;i++){
-    globalCountries.push(countryYears[i].split(","));
-  }
+    countryYear = countryYears[i].split(",");
+    if(countryYear[1]!=globalCountryYears[globalCountryYears.length-1][0]&&countryYear[1]){
+      oneTile(globalCountryYears[globalCountryYears.length-1]);
+      globalCountryYears.push(["",[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]
+                                          ,[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]]);
+      globalCountryYears[globalCountryYears.length-1][0] = countryYear[1];
+    }
+    if(!isNaN(countryYear[3])){
+      globalCountryYears[globalCountryYears.length-1][1].push(countryYear[2]);
 
+      for(var j=3;j<20;j++){
+        globalCountryYears[globalCountryYears.length-1][j+1].push(countryYear[j]);
+        if(j==3)globalCountryYears[globalCountryYears.length-1][j+18].push(countryYear[35]);
+        else if(j==17)globalCountryYears[globalCountryYears.length-1][j+18].push(0);
+        else if(j==18||j==19)globalCountryYears[globalCountryYears.length-1][j+18].push(countryYear[j+15]);
+        else globalCountryYears[globalCountryYears.length-1][j+18].push(countryYear[j+16]);
+
+
+      }
+    }
+  }
+  oneTile(globalCountryYears[globalCountryYears.length-1]);
   drawGraphs();
-  createColorMenu();
+
+  d3.selectAll("#graphSvg").transition()
+                          .delay(10)
+                          .ease(d3.easeLinear)
+                          .duration(2000)
+                          .attr("width",width)
+                          .on("interrupt",function(){
+                            d3.select(this).attr("width",width);
+                          });
+
+}
+
+function loadWorldMap(countries){
+  for(var i=1;i<countries.length;i++){
+    if(countries[i]!=""){
+      globalCountries.push(countries[i].split(","));
+      createNewTile(globalCountries[globalCountries.length-1]);
+    }
+  }
 }
 
 function readTextFile(filepath){
   var file = new XMLHttpRequest();
   file.open("GET", filepath, false);
-  //file.setRequestHeader("Content-Type","text/plain");
   file.send(null);
   return file.responseText.split("\n");
 }
 
-tiles(readTextFile("misc/worldtilegrid_vdem.csv"),readTextFile("misc/data20171230.csv"));
+createMenus();
+loadWorldMap(readTextFile("misc/worldtilegrid_vdem.csv"));
+loadIntervals(readTextFile("misc/intervals.csv"));
+loadData(readTextFile("misc/vdem71selection.csv"));
+loadDescriptions(readTextFile("misc/descriptions.csv"));

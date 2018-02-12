@@ -1,16 +1,38 @@
 <html>
   <head>
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+    <link href='https://fonts.googleapis.com/css?family=Nunito Sans' rel='stylesheet'>
     <link rel="stylesheet" href="tiles.css"/>
   </head>
   <body>
-    <h1>
-      <label for="nValue">Polyarchy In The World From </label>
-      <input type="number" min=1900 max=2015 step=1 value=1900 id="startYear" autocomplete="off">
-      <label for="nValue">To </label>
-      <input type="number" min=1901 max=2016 step=1 value=2016 id="endYear" autocomplete="off">
-    </h1>
-    <script type="text/javascript" src="d3.v2.js"></script>
+    <table cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td rowspan="2"><h1><select id="select"></select></h1></td>
+        <td rowspan="2"><h1><label> in the world&nbsp;</label></h1></td>
+        <td rowspan="2"><input type="text" id="startYear" value="1900" autocomplete="off" /></td>
+        <td><input id="startYearUp" width=40 height=40 type="image" src="misc/buttonUp.svg"/></td>
+
+        <td rowspan="2"><h1><label>&nbsp;&ndash;&nbsp;</label></h1></td>
+        <td rowspan="2"><input type="text" id="endYear" value="2016" autocomplete="off" /></td>
+        <td><input id="endYearUp" width=40 height=40 type="image" src="misc/buttonUp.svg" /></td>
+
+        <td rowspan="2"><h1><label>&nbsp;with&nbsp;</label></h1></td>
+        <td rowspan="2"><input type="text" id="interval" value="95" autocomplete="off" /></td>
+        <td><input id="intervalsUp" width=40 height=40 type="image" src="misc/buttonUp.svg" /></td>
+        <td rowspan="2"><h1><label>% intervals,&nbsp;</label></h1></td>
+        <td rowspan="2"><a href="https://www.v-dem.net/en/"><input id="logo" width=180 height=60 type="image" src="misc/V-Dem_institute_Logo.svg"/></td>
+        <td rowspan="2"><h1><label>&nbsp;Dataset 7.1&nbsp;</label></h1></td>
+        <td rowspan="2"><input id="info" type="button" width=80 height=80 value="i"/></td>
+        <td rowspan="2"><input id="tutorial" type="button" width=80 height=80 value="?"/></td>
+      </tr>
+      <tr>
+        <td><input id="startYearDown" width=40 height=40 type="image" src="misc/buttonDown.svg"/></td>
+        <td><input id="endYearDown" width=40 height=40 type="image" src="misc/buttonDown.svg" /></td>
+        <td><input id="intervalsDown" width=40 height=40 type="image" src="misc/buttonDown.svg" /></td>
+      </tr>
+    </table>
+
+    <script type="text/javascript" src="d3.v4.js"></script>
     <script type="text/javascript" src="script.js"></script>
   </body>
 </html>
