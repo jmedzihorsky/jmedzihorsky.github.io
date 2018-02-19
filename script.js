@@ -140,7 +140,7 @@ d3.select("#info").on("click",function(){
           .text(line);
   }
   addLine("Visualization by Daniel Josefson and Juraj Medzihorsky","2.0em","100px");
-  addLine("using [d3.v4.js]","3.0em","100px");
+  addLine("using [d3js]","3.0em","100px");
   addLine("V-Dem Dataset 7.1 by Varieties of Democracy Institute, University of Gothenburg","5.0em","100px");
   addLine("https://www.v-dem.net/en/data/data-version-7-1/","6.0em","100px");
 
@@ -183,271 +183,281 @@ d3.select("#info").on("click",function(){
   infoText0.transition().delay(6000).duration(2000).style("opacity",0);
 });
 
-var tutorial = d3.select("#tutorial").on("click",function(){
-    d3.selectAll("*").interrupt();
-    var countryPositions = [];
-    var rect,prevX,prevY,nextX,nextY;
-    for(var i=0;i<globalCountries.length;i++){
-      var countryGroup = d3.select("#"+globalCountries[i][2]);
-      rect = countryGroup.select("#drag");
-      prevX = rect.attr("x"),
-      prevY = rect.attr("y"),
-      nextX = wws*globalCountries[i][9],
-      nextY = hws*globalCountries[i][10];
-      if(prevX!=nextX||prevY!=nextY){
-        countryGroup.data([{x: nextX,y: nextY}]);
-        countryGroup.select("#drag").transition().duration(1000).attr("x",nextX).attr("y",nextY);
-        countryGroup.select("#shine").transition().duration(1000).attr("x",nextX-1).attr("y",nextY-1);
-        countryGroup.select("text").transition().duration(1000).attr("x",nextX).attr("y",nextY);
-        countryGroup.select("svg").transition().duration(1000).attr("x",nextX).attr("y",nextY+18);
-        countryPositions.push([countryGroup,prevX,prevY,nextX,nextY]);
-      }
+function tutorialAnimation(){
+  d3.selectAll("*").interrupt();
+  var countryPositions = [];
+  var rect,prevX,prevY,nextX,nextY;
+  for(var i=0;i<globalCountries.length;i++){
+    var countryGroup = d3.select("#"+globalCountries[i][2]);
+    rect = countryGroup.select("#drag");
+    prevX = rect.attr("x"),
+    prevY = rect.attr("y"),
+    nextX = wws*globalCountries[i][9],
+    nextY = hws*globalCountries[i][10];
+    if(prevX!=nextX||prevY!=nextY){
+      countryGroup.data([{x: nextX,y: nextY}]);
+      countryGroup.select("#drag").transition().duration(1000).attr("x",nextX).attr("y",nextY);
+      countryGroup.select("#shine").transition().duration(1000).attr("x",nextX-1).attr("y",nextY-1);
+      countryGroup.select("text").transition().duration(1000).attr("x",nextX).attr("y",nextY);
+      countryGroup.select("svg").transition().duration(1000).attr("x",nextX).attr("y",nextY+18);
+      countryPositions.push([countryGroup,prevX,prevY,nextX,nextY]);
     }
-    zoom.transform(svg, d3.zoomIdentity);
+  }
+  zoom.transform(svg, d3.zoomIdentity);
 
-    var canada = d3.select("#CAN");
-    var usa = d3.select("#USA");
-    var mousePos = [0,0];
+  var canada = d3.select("#CAN");
+  var usa = d3.select("#USA");
+  var mousePos = [0,0];
 
-    var canadaPos = [parseInt(canada.select("#drag").attr("x")),
-                    parseInt(canada.select("#drag").attr("y"))];
-    var usaPos = [parseInt(usa.select("#drag").attr("x")),
-                  parseInt(usa.select("#drag").attr("y"))];
-    var canadaNewPos = [canadaPos[0]+450,canadaPos[1]+200];
-    var colorMenuPos = [canadaNewPos[0]+50,canadaNewPos[1]];
-    var canadaColor = canada.select("#graphSvg").attr("stroke");
+  var canadaPos = [parseFloat(canada.select("#drag").attr("x")),
+                  parseFloat(canada.select("#drag").attr("y"))];
+  var usaPos = [parseFloat(usa.select("#drag").attr("x")),
+                parseFloat(usa.select("#drag").attr("y"))];
+  var canadaNewPos = [canadaPos[0]+450,canadaPos[1]+200];
+  var colorMenuPos = [canadaNewPos[0]+50,canadaNewPos[1]];
+  var canadaColor = canada.select("#graphSvg").attr("stroke");
 
-    colorMenu.node().parentNode.appendChild(colorMenu.node());
+  colorMenu.node().parentNode.appendChild(colorMenu.node());
 
-    var tutorialG = svg.append("g")
+  var tutorialG = svg.append("g")
+                      .attr("width",gw)
+                      .attr("height",gh)
+                      .style("opacity",0);
+  var tutorialRect = tutorialG.append("rect")
+                        .attr("x",0)
+                        .attr("y",0)
                         .attr("width",gw)
                         .attr("height",gh)
-                        .style("opacity",0);
-    var tutorialRect = tutorialG.append("rect")
-                          .attr("x",0)
-                          .attr("y",0)
-                          .attr("width",gw)
-                          .attr("height",gh)
-                          .attr("fill","white")
-                          .style("opacity",0.8);
+                        .attr("fill","white")
+                        .style("opacity",0.8);
 
-    function createText(text,offset,size,opacity,x=0,y=0,w=gw,h=gh){
-      var label = tutorialG.append("text")
-                            .attr("class","svgtext")
-                            .attr("x", x)
-                            .attr("y", y)
-                            .attr("width",w)
-                            .attr("height",h)
-                            .style("text-anchor", "middle")
-                            .attr("dy", offset)
-                            .attr("dx", w/2)
-                            .style("font-size", size)
-                            .style("opacity",opacity)
-                            .text(text);
-      return label;
+  function createText(text,offset,size,opacity,x,y,w,h){
+    if(!x){
+      x = 0;
+      y = 0;
+      w = gw;
+      h = gh;
     }
-    var tutorialText0 = createText("Press 'Esc' To Skip Animation","1.0em","100px",1) ;
-    var tutorialText = createText("", "4.0em","200px",0);
-    var tutorialText2 = createText("","5.0em","200px",0);
-    var mouseCursor = tutorialG.append("svg:image")
-                              .attr('x', mousePos[0])
-                              .attr('y', 0)
-                              .attr('width', 100)
-                              .attr('height', 100)
-                              .style("opacity", 0)
-                              .attr("xlink:href", "misc/cursor.png");
+    var label = tutorialG.append("text")
+                          .attr("class","svgtext")
+                          .attr("x", x)
+                          .attr("y", y)
+                          .attr("width",w)
+                          .attr("height",h)
+                          .style("text-anchor", "middle")
+                          .attr("dy", offset)
+                          .attr("dx", w/2)
+                          .style("font-size", size)
+                          .style("opacity",opacity)
+                          .text(text);
+    return label;
+  }
+  var tutorialText0 = createText("Press 'Esc' To Skip Animation","1.0em","100px",1) ;
+  var tutorialText = createText("", "4.0em","200px",0);
+  var tutorialText2 = createText("","5.0em","200px",0);
+  var mouseCursor = tutorialG.append("svg:image")
+                            .attr('x', mousePos[0])
+                            .attr('y', 0)
+                            .attr('width', 100)
+                            .attr('height', 100)
+                            .style("opacity", 0)
+                            .attr("xlink:href", "misc/cursor.png");
 
-    var pathData =
-                    "M164.80339887498948,309L164.80339887498948,824L329.60679774997897,824"+
-                    "L329.60679774997897,1133L494.4101966249684,1133L494.4101966249684,1442"+
-                    "L659.2135954999579,1442L659.2135954999579,1648L988.8203932499368,1648"+
-                    "L988.8203932499368,1236L824.0169943749474,1236L824.0169943749474,1133"+
-                    "L988.8203932499368,1133L988.8203932499368,824L824.0169943749474,824"+
-                    "L824.0169943749474,618L329.60679774997897,618L329.60679774997897,309"+
-                    "L164.80339887498948,309"+
-            "M1318.4271909999159,103L1318.4271909999159,412L1648.033988749895,412"+
-                    "L1648.033988749895,618L1483.2305898749053,618L1483.2305898749053,721"+
-                    "L1812.8373876248843,721L1812.8373876248843,824L2142.444185374863,824"+
-                    "L2142.444185374863,1030L2472.0509831248423,1030L2636.8543819998317,1030"+
-                    "L2636.8543819998317,618L2801.657780874821,618L2801.657780874821,515"+
-                    "L2966.4611797498105,515L2966.4611797498105,412L2636.8543819998317,412"+
-                    "L2636.8543819998317,103L2307.247584249853,103L2307.247584249853,206"+
-                    "L2142.444185374863,206L2142.444185374863,309L1977.6407864998737,309"+
-                    "L1977.6407864998737,412L1648.033988749895,412L1648.033988749895,309"+
-                    "L1483.2305898749053,309L1483.2305898749053,103L1318.4271909999159,103"+
+  var pathData = "M164.80339887498948,309L164.80339887498948,824L329.60679774997897,824"+
+                  "L329.60679774997897,1133L494.4101966249684,1133L494.4101966249684,1442"+
+                  "L659.2135954999579,1442L659.2135954999579,1648L988.8203932499368,1648"+
+                  "L988.8203932499368,1236L824.0169943749474,1236L824.0169943749474,1133"+
+                  "L988.8203932499368,1133L988.8203932499368,824L824.0169943749474,824"+
+                  "L824.0169943749474,618L329.60679774997897,618L329.60679774997897,309"+
+                  "L164.80339887498948,309"+
+          "M1318.4271909999159,103L1318.4271909999159,412L1648.033988749895,412"+
+                  "L1648.033988749895,618L1483.2305898749053,618L1483.2305898749053,721"+
+                  "L1812.8373876248843,721L1812.8373876248843,824L2142.444185374863,824"+
+                  "L2142.444185374863,1030L2472.0509831248423,1030L2636.8543819998317,1030"+
+                  "L2636.8543819998317,618L2801.657780874821,618L2801.657780874821,515"+
+                  "L2966.4611797498105,515L2966.4611797498105,412L2636.8543819998317,412"+
+                  "L2636.8543819998317,103L2307.247584249853,103L2307.247584249853,206"+
+                  "L2142.444185374863,206L2142.444185374863,309L1977.6407864998737,309"+
+                  "L1977.6407864998737,412L1648.033988749895,412L1648.033988749895,309"+
+                  "L1483.2305898749053,309L1483.2305898749053,103L1318.4271909999159,103"+
 
-          "M1483.2305898749053,1236L1483.2305898749053,1545L1318.4271909999159,1545L1318.4271909999159,1648"+
-                    "L1483.2305898749053,1648L1483.2305898749053,1751L1648.033988749895,1751L1648.033988749895,1648"+
-                    "L1812.8373876248843,1648L1812.8373876248843,1854L1977.6407864998737,1854L1977.6407864998737,1957"+
-                    "L2142.444185374863,1957L2142.444185374863,2060L2307.247584249853,2060L2307.247584249853,2163"+
-                    "L2472.0509831248423,2163L2472.0509831248423,2060L2636.8543819998317,2060L2636.8543819998317,1957"+
-                    "L2801.657780874821,1957L2801.657780874821,2163L2966.4611797498105,2163L2966.4611797498105,1957"+
-                    "L2801.657780874821,1957L2801.657780874821,1648L2636.8543819998317,1648L2636.8543819998317,1545"+
-                    "L2801.657780874821,1545L2801.657780874821,1339L2472.0509831248423,1339L2472.0509831248423,1133"+
-                    "L1648.033988749895,1133L1648.033988749895,1236L1483.2305898749053,1236"+
-          "M2472.0509831248423,1030L2472.0509831248423,1339L2966.4611797498105,1339L2966.4611797498105,1133"+
-                    "L3131.2645786248004,1133L3131.2645786248004,1339L3296.06797749979,1339L3296.06797749979,1236"+
-                    "L3460.871376374779,1236L3460.871376374779,1030L3625.6747752497686,1030L3625.6747752497686,1236"+
-                    "L3790.478174124758,1236L3790.478174124758,1339L3625.6747752497686,1339L3625.6747752497686,1442"+
-                    "L3790.478174124758,1442L3790.478174124758,1545L3955.2815729997474,1545L3955.2815729997474,1236"+
-                    "L3790.478174124758,1236L3790.478174124758,1133L4284.888370749726,1133L4284.888370749726,1030"+
-                    "L4120.084971874737,1030L4120.084971874737,927L4284.888370749726,927L4284.888370749726,618"+
-                    "L4120.084971874737,618L4120.084971874737,927L3790.478174124758,927L3790.478174124758,824"+
-                    "L3955.2815729997474,824L3955.2815729997474,618L3790.478174124758,618L3790.478174124758,515"+
-                    "L3460.871376374779,515L3460.871376374779,618L2966.4611797498105,618L2966.4611797498105,721"+
-                    "L2801.657780874821,721L2801.657780874821,824L2636.8543819998317,824L2636.8543819998317,1030"+
-                    "L2472.0509831248423,1030"+
-          "M3790.478174124758,1751L3790.478174124758,1957L3625.6747752497686,1957L3625.6747752497686,2060"+
-                    "L3790.478174124758,2060L3955.2815729997474,2060L3955.2815729997474,2163L4120.084971874737,2163"+
-                    "L4120.084971874737,2060L4284.888370749726,2060L4284.888370749726,1957L4120.084971874737,1957"+
-                    "L4120.084971874737,1854L3955.2815729997474,1854L3955.2815729997474,1751L3790.478174124758,1751";
+        "M1483.2305898749053,1236L1483.2305898749053,1545L1318.4271909999159,1545L1318.4271909999159,1648"+
+                  "L1483.2305898749053,1648L1483.2305898749053,1751L1648.033988749895,1751L1648.033988749895,1648"+
+                  "L1812.8373876248843,1648L1812.8373876248843,1854L1977.6407864998737,1854L1977.6407864998737,1957"+
+                  "L2142.444185374863,1957L2142.444185374863,2060L2307.247584249853,2060L2307.247584249853,2163"+
+                  "L2472.0509831248423,2163L2472.0509831248423,2060L2636.8543819998317,2060L2636.8543819998317,1957"+
+                  "L2801.657780874821,1957L2801.657780874821,2163L2966.4611797498105,2163L2966.4611797498105,1957"+
+                  "L2801.657780874821,1957L2801.657780874821,1648L2636.8543819998317,1648L2636.8543819998317,1545"+
+                  "L2801.657780874821,1545L2801.657780874821,1339L2472.0509831248423,1339L2472.0509831248423,1133"+
+                  "L1648.033988749895,1133L1648.033988749895,1236L1483.2305898749053,1236"+
+        "M2472.0509831248423,1030L2472.0509831248423,1339L2966.4611797498105,1339L2966.4611797498105,1133"+
+                  "L3131.2645786248004,1133L3131.2645786248004,1339L3296.06797749979,1339L3296.06797749979,1236"+
+                  "L3460.871376374779,1236L3460.871376374779,1030L3625.6747752497686,1030L3625.6747752497686,1236"+
+                  "L3790.478174124758,1236L3790.478174124758,1339L3625.6747752497686,1339L3625.6747752497686,1442"+
+                  "L3790.478174124758,1442L3790.478174124758,1545L3955.2815729997474,1545L3955.2815729997474,1236"+
+                  "L3790.478174124758,1236L3790.478174124758,1133L4284.888370749726,1133L4284.888370749726,1030"+
+                  "L4120.084971874737,1030L4120.084971874737,927L4284.888370749726,927L4284.888370749726,618"+
+                  "L4120.084971874737,618L4120.084971874737,927L3790.478174124758,927L3790.478174124758,824"+
+                  "L3955.2815729997474,824L3955.2815729997474,618L3790.478174124758,618L3790.478174124758,515"+
+                  "L3460.871376374779,515L3460.871376374779,618L2966.4611797498105,618L2966.4611797498105,721"+
+                  "L2801.657780874821,721L2801.657780874821,824L2636.8543819998317,824L2636.8543819998317,1030"+
+                  "L2472.0509831248423,1030"+
+        "M3790.478174124758,1751L3790.478174124758,1957L3625.6747752497686,1957L3625.6747752497686,2060"+
+                  "L3790.478174124758,2060L3955.2815729997474,2060L3955.2815729997474,2163L4120.084971874737,2163"+
+                  "L4120.084971874737,2060L4284.888370749726,2060L4284.888370749726,1957L4120.084971874737,1957"+
+                  "L4120.084971874737,1854L3955.2815729997474,1854L3955.2815729997474,1751L3790.478174124758,1751";
 
-    var continent1 = createText("Americas","1.0em","150px",0,450,750,400,200),
-        continent2 = createText("Europe","1.0em","150px",0,2000,450,400,200),
-        continent3 = createText("Africa","1.0em","150px",0,2000,1350,400,200),
-        continent4 = createText("Asia","1.0em","150px",0,3100,750,400,200),
-        continent5 = createText("Oceania","1.0em","150px",0,3750,1850,400,200);
-    var continentPath = tutorialG.append("svg")
-                                .append("path")
-                                .attr("opacity",0)
-                                .attr("fill",d3.rgb(0,0,256))
-                                .attr("stroke",d3.rgb(0,0,256))
-                                .attr("fill-opacity",0.05)
-                                .attr("d",pathData);
+  var continent1 = createText("Americas","1.0em","150px",0,450,750,400,200),
+      continent2 = createText("Europe","1.0em","150px",0,2000,450,400,200),
+      continent3 = createText("Africa","1.0em","150px",0,2000,1350,400,200),
+      continent4 = createText("Asia","1.0em","150px",0,3100,750,400,200),
+      continent5 = createText("Oceania","1.0em","150px",0,3750,1850,400,200);
+  var continentPath = tutorialG.append("svg")
+                              .append("path")
+                              .attr("opacity",0)
+                              .attr("fill",d3.rgb(0,0,256))
+                              .attr("stroke",d3.rgb(0,0,256))
+                              .attr("fill-opacity",0.05)
+                              .attr("d",pathData);
 
-    function endAnimation(){
-      if(countryPositions.length){
-        for(var i=0;i<countryPositions.length;i++){
-          nextX = countryPositions[i][1];
-          nextY = countryPositions[i][2];
-          prevX = countryPositions[i][3];
-          prevY = countryPositions[i][4];
-          countryPositions[i][0].data([{x: nextX,y: nextY}]);
-          countryPositions[i][0].select("#drag").transition().duration(200).attr("x",nextX).attr("y",nextY);
-          countryPositions[i][0].select("#shine").transition().duration(200).attr("x",nextX-1).attr("y",nextY-1);
-          countryPositions[i][0].select("svg").transition().duration(200).attr("x",nextX).attr("y",nextY+18);
-          countryPositions[i][0].select("text").transition().duration(200).attr("x",nextX).attr("y",nextY);
-          checkCountryStack(actionCountries[i][0].select("text"),prevX,prevY,nextX,nextY);
-        }
+  function endAnimation(){
+    if(countryPositions.length){
+      for(var i=0;i<countryPositions.length;i++){
+        nextX = countryPositions[i][1];
+        nextY = countryPositions[i][2];
+        prevX = countryPositions[i][3];
+        prevY = countryPositions[i][4];
+        countryPositions[i][0].data([{x: nextX,y: nextY}]);
+        countryPositions[i][0].select("#drag").transition().duration(200).attr("x",nextX).attr("y",nextY);
+        countryPositions[i][0].select("#shine").transition().duration(200).attr("x",nextX-1).attr("y",nextY-1);
+        countryPositions[i][0].select("svg").transition().duration(200).attr("x",nextX).attr("y",nextY+18);
+        countryPositions[i][0].select("text").transition().duration(200).attr("x",nextX).attr("y",nextY)
+                        .on("end",function(){
+                          checkCountryStack(actionCountries[i][0],prevX,prevY,nextX,nextY);
+                        });
       }
-
-      usa.transition().duration(1000).attr("transform","");
-      canada.select(".svgtext").transition().duration(1000).attr("opacity",1);
-      canada.select("#graphSvg").transition().duration(1000)
-            .attr("fill",canadaColor).attr("stroke",canadaColor);
-      canada.transition().delay(1000).duration(1000).attr("transform","").on("end",function(){
-        mouseCursor.remove();
-        tutorialG.remove();
-      });
     }
-    tutorialG.append("g").attr("id","animation")
-                        .transition().duration(79000)
-                        .on("end",endAnimation)
-                        .on("interrupt",endAnimation);
 
-    tutorialG.transition().duration(1000).style("opacity",1)
-            .transition().delay(76000).duration(1000).style("opacity",0);
-    tutorialText0.transition().delay(6000).duration(2000).style("opacity",0);
-
-    tutorialText.transition().delay(1000).duration(2000).text("This visualization lets you explore").style("opacity",1)
-                .transition().delay(2000).duration(2000).style("opacity",0)
-                .transition().duration(2000).text("the data is geographically organized").style("opacity",1)
-                .transition().delay(1000).duration(2000).style("opacity",0);
-    tutorialText2.transition().delay(1000).duration(2000).text("selected indicators from the V-Dem Dataset 7.1").style("opacity",1)
-                .transition().delay(2000).duration(2000).style("opacity",0);
-
-    tutorialRect.transition().delay(12000).duration(1000).style("opacity",0)
-                .transition().delay(5000).duration(1000).style("opacity",0.8);
-
-    continent1.transition().delay(13000).duration(2000).style("opacity",1)
-              .transition().delay(1000).duration(2000).style("opacity",0);
-    continent2.transition().delay(13000).duration(2000).style("opacity",1)
-              .transition().delay(1000).duration(2000).style("opacity",0);
-    continent3.transition().delay(13000).duration(2000).style("opacity",1)
-              .transition().delay(1000).duration(2000).style("opacity",0);
-    continent4.transition().delay(13000).duration(2000).style("opacity",1)
-              .transition().delay(1000).duration(2000).style("opacity",0);
-    continent5.transition().delay(13000).duration(2000).style("opacity",1)
-              .transition().delay(1000).duration(2000).style("opacity",0);
-    continentPath.transition().delay(13000).duration(2000).style("opacity",1)
-                .transition().delay(1000).duration(2000).style("opacity",0);
-
-    tutorialText.transition().delay(19000).duration(2000).text("you can grab a tile").style("opacity",1)
-                .transition().delay(1000).duration(2000).style("opacity",0);
-    tutorialText2.transition().delay(19000).duration(2000).text("with a left click").style("opacity",1)
-                 .transition().delay(1000).duration(2000).style("opacity",0);
-
-    tutorialRect.transition().delay(24000).duration(1000).style("opacity",0);
-    mouseCursor.transition().delay(25000).duration(1000).style("opacity",1)
-              .transition().duration(3000).attr("x",canadaPos[0]).attr("y",canadaPos[1])
-              .transition().duration(800).attr("xlink:href", "misc/grabCursor.png")
-              .transition().duration(200).attr("xlink:href", "misc/grabbingCursor.png")
-              .transition().duration(2000).attr("x",canadaNewPos[0]).attr("y",canadaNewPos[1])
-              .transition().duration(800).attr("xlink:href", "misc/grabCursor.png")
-              .transition().duration(200).attr("xlink:href", "misc/cursor.png")
-              .transition().duration(2000).style("opacity",0);
-
-    canada.transition().delay(30000).duration(2000).attr("transform","translate(450,200)")
-          .transition().duration(1000).attr("transform","translate("+Math.round(450/wws)*wws+","+Math.round(200/hws)*hws+")");
-
-    tutorialRect.transition().delay(35000).duration(1000).style("opacity",0.8)
-              .transition().delay(5000).duration(1000).style("opacity",0);
-
-    tutorialText.transition().delay(36000).duration(2000).text("change the color").style("opacity",1)
-                .transition().delay(1000).duration(2000).style("opacity",0);
-    tutorialText2.transition().delay(36000).duration(2000).text("with a right click").style("opacity",1)
-                .transition().delay(1000).duration(2000).style("opacity",0);
-
-    mouseCursor.transition().delay(42000).duration(1000).style("opacity",1)
-              .transition().duration(1000).attr("x",canadaNewPos[0]+50).attr("y",canadaNewPos[1])
-              .transition().duration(1000).attr("xlink:href", "misc/grabCursor.png")
-              .transition().duration(1000).attr("xlink:href", "misc/pointerCursor.png")
-              .transition().duration(1000).attr("x",canadaNewPos[0]+100).attr("y",canadaNewPos[1]+100)
-              .transition().delay(1000).duration(1000).attr("xlink:href", "misc/cursor.png").style("opacity",0);
-
-    colorMenu.attr("transform","translate("+colorMenuPos+")scale(2)")
-            .transition().delay(45000).duration(200).style("opacity",1)
-            .transition().delay(2000).duration(200).style("opacity",0);
-
-    canada.select("#graphSvg").transition().delay(47000).duration(400)
-          .attr("fill",d3.rgb(237,32,23)).attr("stroke",d3.rgb(237,32,23));;
-
-    tutorialRect.transition().delay(49000).duration(1000).style("opacity",0.8)
-            .transition().delay(5000).duration(1000).style("opacity",0);
-
-    tutorialText.transition().delay(50000).duration(2000).text("zoom in and out").style("opacity",1)
-                .transition().delay(1000).duration(2000).style("opacity",0);
-    tutorialText2.transition().delay(50000).duration(2000).text("with the mouse wheel").style("opacity",1)
-                .transition().delay(1000).duration(2000).style("opacity",0);
-
-    svg.selectAll(".country").each(function(){
-      if(this.id=="CAN"){
-        d3.select(this).transition().delay(56000).duration(2000).attr("transform","scale(2)translate("+Math.round(450/wws)*wws+","+Math.round(200/hws)*hws+")")
-          .transition().delay(1000).duration(2000).attr("transform","translate("+Math.round(450/wws)*wws+","+Math.round(200/hws)*hws+")");
-      }else{
-        d3.select(this).transition().delay(56000).duration(2000).attr("transform","scale(2)")
-          .transition().delay(1000).duration(2000).attr("transform","");
-      }
+    usa.transition().duration(1000).attr("transform","");
+    canada.select(".svgtext").transition().duration(1000).attr("opacity",1);
+    canada.select("#graphSvg").transition().duration(1000)
+          .attr("fill",canadaColor).attr("stroke",canadaColor);
+    canada.transition().delay(1000).duration(1000).attr("transform","").on("end",function(){
+      mouseCursor.remove();
+      tutorialG.remove();
     });
+  }
+  tutorialG.append("g").attr("id","animation")
+                      .transition().duration(79000)
+                      .on("end",endAnimation)
+                      .on("interrupt",endAnimation);
 
-    tutorialRect.transition().delay(61000).duration(1000).style("opacity",0.8)
+  tutorialG.transition().duration(1000).style("opacity",1)
+          .transition().delay(76000).duration(1000).style("opacity",0);
+  tutorialText0.transition().delay(6000).duration(2000).style("opacity",0);
+
+  tutorialText.transition().delay(1000).duration(2000).text("This visualization lets you explore").style("opacity",1)
+              .transition().delay(2000).duration(2000).style("opacity",0)
+              .transition().duration(2000).text("the data is geographically organized").style("opacity",1)
+              .transition().delay(1000).duration(2000).style("opacity",0);
+  tutorialText2.transition().delay(1000).duration(2000).text("selected indicators from the V-Dem Dataset 7.1").style("opacity",1)
+              .transition().delay(2000).duration(2000).style("opacity",0);
+
+  tutorialRect.transition().delay(12000).duration(1000).style("opacity",0)
+              .transition().delay(5000).duration(1000).style("opacity",0.8);
+
+  continent1.transition().delay(13000).duration(2000).style("opacity",1)
+            .transition().delay(1000).duration(2000).style("opacity",0);
+  continent2.transition().delay(13000).duration(2000).style("opacity",1)
+            .transition().delay(1000).duration(2000).style("opacity",0);
+  continent3.transition().delay(13000).duration(2000).style("opacity",1)
+            .transition().delay(1000).duration(2000).style("opacity",0);
+  continent4.transition().delay(13000).duration(2000).style("opacity",1)
+            .transition().delay(1000).duration(2000).style("opacity",0);
+  continent5.transition().delay(13000).duration(2000).style("opacity",1)
+            .transition().delay(1000).duration(2000).style("opacity",0);
+  continentPath.transition().delay(13000).duration(2000).style("opacity",1)
+              .transition().delay(1000).duration(2000).style("opacity",0);
+
+  tutorialText.transition().delay(19000).duration(2000).text("you can grab a tile").style("opacity",1)
+              .transition().delay(1000).duration(2000).style("opacity",0);
+  tutorialText2.transition().delay(19000).duration(2000).text("with a left click").style("opacity",1)
+               .transition().delay(1000).duration(2000).style("opacity",0);
+
+  tutorialRect.transition().delay(24000).duration(1000).style("opacity",0);
+  mouseCursor.transition().delay(25000).duration(1000).style("opacity",1)
+            .transition().duration(3000).attr("x",canadaPos[0]).attr("y",canadaPos[1])
+            .transition().duration(800).attr("xlink:href", "misc/grabCursor.png")
+            .transition().duration(200).attr("xlink:href", "misc/grabbingCursor.png")
+            .transition().duration(2000).attr("x",canadaNewPos[0]).attr("y",canadaNewPos[1])
+            .transition().duration(800).attr("xlink:href", "misc/grabCursor.png")
+            .transition().duration(200).attr("xlink:href", "misc/cursor.png")
+            .transition().duration(2000).style("opacity",0);
+
+  canada.transition().delay(30000).duration(2000).attr("transform","translate(450,200)")
+        .transition().duration(1000).attr("transform","translate("+Math.round(450/wws)*wws+","+Math.round(200/hws)*hws+")");
+
+  tutorialRect.transition().delay(35000).duration(1000).style("opacity",0.8)
             .transition().delay(5000).duration(1000).style("opacity",0);
 
-    tutorialText.transition().delay(62000).duration(2000).text("and stack the tiles").style("opacity",1)
-                .transition().delay(1000).duration(2000).style("opacity",0);
+  tutorialText.transition().delay(36000).duration(2000).text("change the color").style("opacity",1)
+              .transition().delay(1000).duration(2000).style("opacity",0);
+  tutorialText2.transition().delay(36000).duration(2000).text("with a right click").style("opacity",1)
+              .transition().delay(1000).duration(2000).style("opacity",0);
 
-    mouseCursor.transition().delay(68000).duration(1000).style("opacity",1)
-              .transition().duration(2000).attr("x",usaPos[0]).attr("y",usaPos[1])
-              .transition().duration(800).attr("xlink:href", "misc/grabCursor.png")
-              .transition().duration(200).attr("xlink:href", "misc/grabbingCursor.png")
-              .transition().duration(2000).attr("x",canadaNewPos[0]).attr("y",canadaNewPos[1])
-              .transition().duration(800).attr("xlink:href", "misc/grabCursor.png")
-              .transition().duration(200).attr("xlink:href", "misc/cursor.png")
-              .transition().delay(1000).duration(1000).style("opacity",0);
-    usa.transition().delay(72000).duration(2000).attr("transform","translate(450,100)")
-        .transition().duration(1000).attr("transform","translate("+Math.round(450/wws)*wws+","+Math.round(100/hws)*hws+")");
-    canada.select(".svgtext").transition().delay(74000).duration(200).attr("opacity",0);
-});
+  mouseCursor.transition().delay(42000).duration(1000).style("opacity",1)
+            .transition().duration(1000).attr("x",canadaNewPos[0]+50).attr("y",canadaNewPos[1])
+            .transition().duration(1000).attr("xlink:href", "misc/grabCursor.png")
+            .transition().duration(1000).attr("xlink:href", "misc/pointerCursor.png")
+            .transition().duration(1000).attr("x",canadaNewPos[0]+100).attr("y",canadaNewPos[1]+100)
+            .transition().delay(1000).duration(1000).attr("xlink:href", "misc/cursor.png").style("opacity",0);
+
+  colorMenu.attr("transform","translate("+colorMenuPos+")scale(2)")
+          .transition().delay(45000).duration(200).style("opacity",1)
+          .transition().delay(2000).duration(200).style("opacity",0);
+
+  canada.select("#graphSvg").transition().delay(47000).duration(400)
+        .attr("fill",d3.rgb(237,32,23)).attr("stroke",d3.rgb(237,32,23));;
+
+  tutorialRect.transition().delay(49000).duration(1000).style("opacity",0.8)
+          .transition().delay(5000).duration(1000).style("opacity",0);
+
+  tutorialText.transition().delay(50000).duration(2000).text("zoom in and out").style("opacity",1)
+              .transition().delay(1000).duration(2000).style("opacity",0);
+  tutorialText2.transition().delay(50000).duration(2000).text("with the mouse wheel").style("opacity",1)
+              .transition().delay(1000).duration(2000).style("opacity",0);
+
+  svg.selectAll(".country").each(function(){
+    if(this.id=="CAN"){
+      d3.select(this).transition().delay(56000).duration(2000).attr("transform","scale(2)translate("+Math.round(450/wws)*wws+","+Math.round(200/hws)*hws+")")
+        .transition().delay(1000).duration(2000).attr("transform","translate("+Math.round(450/wws)*wws+","+Math.round(200/hws)*hws+")");
+    }else{
+      d3.select(this).transition().delay(56000).duration(2000).attr("transform","scale(2)")
+        .transition().delay(1000).duration(2000).attr("transform","");
+    }
+  });
+
+  tutorialRect.transition().delay(61000).duration(1000).style("opacity",0.8)
+          .transition().delay(5000).duration(1000).style("opacity",0);
+
+  tutorialText.transition().delay(62000).duration(2000).text("and stack the tiles").style("opacity",1)
+              .transition().delay(1000).duration(2000).style("opacity",0);
+
+  mouseCursor.transition().delay(68000).duration(1000).style("opacity",1)
+            .transition().duration(2000).attr("x",usaPos[0]).attr("y",usaPos[1])
+            .transition().duration(800).attr("xlink:href", "misc/grabCursor.png")
+            .transition().duration(200).attr("xlink:href", "misc/grabbingCursor.png")
+            .transition().duration(2000).attr("x",canadaNewPos[0]).attr("y",canadaNewPos[1])
+            .transition().duration(800).attr("xlink:href", "misc/grabCursor.png")
+            .transition().duration(200).attr("xlink:href", "misc/cursor.png")
+            .transition().delay(1000).duration(1000).style("opacity",0);
+  usa.transition().delay(72000).duration(2000).attr("transform","translate(450,100)")
+      .transition().duration(1000).attr("transform","translate("+Math.round(450/wws)*wws+","+Math.round(100/hws)*hws+")");
+  canada.select(".svgtext").transition().delay(74000).duration(200).attr("opacity",0);
+
+}
+
+var tutorial = d3.select("#tutorial").on("click",tutorialAnimation);
 
 var color = d3.rgb(220,220,220);
 var colorPalette = [[d3.rgb(7,15,132),d3.rgb(146,19,19),d3.rgb(0,120,42),d3.rgb(0,0,0)],
@@ -508,9 +518,6 @@ function changeYears(nextYearX,nextYearY){
   }
 }
 
-function redrawTiles(){
-  changeYears(parseInt(startYear.property("value")),endYear.property("value"));
-}
 function changeIntervals(nextIndex){
   var prevIndex = intervalIndex;
   addAction(function(undo){
@@ -522,21 +529,27 @@ function changeIntervals(nextIndex){
   drawGraphs();
 }
 
-function checkCountryStack(countryText,prevX,prevY,nextX,nextY){
+function checkCountryStack(group,prevX,prevY,nextX,nextY){
+  var px = parseInt(prevX),
+      py = parseInt(prevY),
+      nx = parseInt(nextX),
+      ny = parseInt(nextY);
+  var x,y;
+  var thisGroup,rect;
   var lastText;
-  d3.selectAll(".svgtext").each(function(){
-    var thisText = d3.select(this);
-    if(parseInt(thisText.attr("x")).toFixed(2)==parseInt(nextX).toFixed(2) &&
-        parseInt(thisText.attr("y")).toFixed(2)==parseInt(nextY).toFixed(2) &&
-        thisText.text() != countryText.text()){
-      thisText.transition("transparentText").duration(200).attr("opacity",0);
-    }else if(parseInt(thisText.attr("x")).toFixed(2)==parseInt(prevX).toFixed(2) &&
-        parseInt(thisText.attr("y")).toFixed(2)==parseInt(prevY).toFixed(2) &&
-        thisText.text() != countryText.text()){
-      lastText = thisText;
+  d3.selectAll(".country").each(function(){
+    thisGroup = d3.select(this);
+    rect = thisGroup.select("#drag");
+    x = parseInt(rect.attr("x"));
+    y = parseInt(rect.attr("y"));
+    if(x==nx && y==ny && this.id!=group.attr("id")){
+      thisGroup.select("text").transition("textOpacity").duration(200).attr("opacity",0);
+      group.select("text").transition("textOpacity").duration(200).attr("opacity",1);
+    }else if(x==px && y==py && this.id!=group.attr("id")){
+      lastText = thisGroup.select("text");
     }
   });
-  if(lastText)lastText.transition("transparentText").duration(500).attr("opacity",1);
+  if(lastText)lastText.transition("textOpacity").duration(500).attr("opacity",1);
 }
 
 var startYear = d3.select("#startYear").on("keyup",function(){
@@ -558,8 +571,9 @@ var endYear = d3.select("#endYear").on("keyup",function(){
 
 var intervalInput = d3.select("#interval").on("keyup",function(){
     if(d3.event.key=="Enter"){
-      if(parseInt(this.value)>0 && parseInt(this.value)<=99){
-        if(parseInt(this.value)!=intervalIndex)changeIntervals(parseInt(this.value));
+      var value = parseInt(this.value);
+      if(value>0 && value<=99){
+        if(value!=intervalIndex)changeIntervals(value);
         this.blur();
       }
     }
@@ -591,7 +605,7 @@ d3.select("#startYearUp").on("mousedown", function(){
 }).on("mouseup mouseout",function(){
   this.src = "misc/buttonUp.svg";
   clearInterval(mouseholdTimer);
-  redrawTiles();
+  changeYears(parseFloat(startYear.property("value")),parseFloat(endYear.property("value")));
 });
 d3.select("#startYearDown").on("mousedown", function(){
   this.src = "misc/buttonDownClicked.svg";
@@ -605,7 +619,7 @@ d3.select("#startYearDown").on("mousedown", function(){
 }).on("mouseup mouseout",function(){
   this.src = "misc/buttonDown.svg";
   clearInterval(mouseholdTimer);
-  redrawTiles();
+  changeYears(parseFloat(startYear.property("value")),parseFloat(endYear.property("value")));
 });
 
 d3.select("#endYearUp").on("mousedown", function(){
@@ -620,7 +634,7 @@ d3.select("#endYearUp").on("mousedown", function(){
 }).on("mouseup mouseout",function(){
   this.src = "misc/buttonUp.svg";
   clearInterval(mouseholdTimer);
-  redrawTiles();
+  changeYears(parseFloat(startYear.property("value")),parseFloat(endYear.property("value")));
 });
 d3.select("#endYearDown").on("mousedown", function(){
   this.src = "misc/buttonDownClicked.svg";
@@ -634,7 +648,7 @@ d3.select("#endYearDown").on("mousedown", function(){
 }).on("mouseup mouseout",function(){
   this.src = "misc/buttonDown.svg";
   clearInterval(mouseholdTimer);
-  redrawTiles();
+  changeYears(parseFloat(startYear.property("value")),parseFloat(endYear.property("value")));
 });
 
 d3.select("#intervalsUp").on("mousedown", function(){
@@ -727,39 +741,61 @@ function createMenus(){
 
   addMenu(22,"Reset Tiles",function(){
     var actionCountries = [];
-    var rect,prevX,prevY,nextX,nextY;
+    var countryGroup,rect,prevX,prevY,nextX,nextY;
     for(var i=0;i<globalCountries.length;i++){
-      var countryGroup = d3.select("#"+globalCountries[i][2]);
+      countryGroup = d3.select("#"+globalCountries[i][2]);
       rect = countryGroup.select("#drag");
       prevX = rect.attr("x"),
       prevY = rect.attr("y"),
       nextX = wws*globalCountries[i][9],
       nextY = hws*globalCountries[i][10];
       if(prevX!=nextX||prevY!=nextY){
-        countryGroup.data([{x: nextX,y: nextY}]);
-        countryGroup.select("#drag").transition().duration(200).attr("x",nextX).attr("y",nextY);
-        countryGroup.select("#shine").transition().duration(200).attr("x",nextX-1).attr("y",nextY-1);
-        countryGroup.select("text").transition().duration(200).attr("x",nextX).attr("y",nextY);
-        countryGroup.select("svg").transition().duration(200).attr("x",nextX).attr("y",nextY+18);
+        var thisGroup = countryGroup;
+        thisGroup.data([{x: nextX,y: nextY}]);
+        thisGroup.select("#drag").transition().duration(200).attr("x",nextX).attr("y",nextY);
+        thisGroup.select("#shine").transition().duration(200).attr("x",nextX-1).attr("y",nextY-1);
+        thisGroup.select("svg").transition().duration(200).attr("x",nextX).attr("y",parseFloat(nextY)+18);
+        thisGroup.select("text").transition().duration(200).attr("x",nextX).attr("y",nextY).attr("opacity",1);
+
         actionCountries.push([countryGroup,prevX,prevY,nextX,nextY]);
-        checkCountryStack(countryGroup.select("text"),prevX,prevY,nextX,nextY);
       }
     }
     if(actionCountries.length){
-      addAction(function(undo){
-        var actionPrevX,actionPrevY,actionNextX,actionNextY;
+      setTimeout(function(){
         for(var i=0;i<actionCountries.length;i++){
-          actionNextX = undo ? actionCountries[i][1] : actionCountries[i][3],
-          actionNextY = undo ? actionCountries[i][2] : actionCountries[i][4],
-          actionPrevX = undo ? actionCountries[i][3] : actionCountries[i][1],
-          actionPrevY = undo ? actionCountries[i][4] : actionCountries[i][2];
-          actionCountries[i][0].data([{x: actionNextX,y: actionNextY}]);
-          actionCountries[i][0].select("#drag").transition().duration(200).attr("x",actionNextX).attr("y",actionNextY);
-          actionCountries[i][0].select("#shine").transition().duration(200).attr("x",actionNextX-1).attr("y",actionNextY-1);
-          actionCountries[i][0].select("svg").transition().duration(200).attr("x",actionNextX).attr("y",actionNextY+18);
-          actionCountries[i][0].select("text").transition().duration(200).attr("x",actionNextX).attr("y",actionNextY);
-          checkCountryStack(actionCountries[i][0].select("text"),actionPrevX,actionPrevY,actionNextX,actionNextY);
+          countryGroup = actionCountries[i];
+          nextX = countryGroup[3],
+          nextY = countryGroup[4],
+          prevX = countryGroup[1],
+          prevY = countryGroup[2];
+          checkCountryStack(countryGroup[0],prevX,prevY,nextX,nextY);
         }
+      },300);
+
+      addAction(function(undo){
+        var actionGroup,actionPrevX,actionPrevY,actionNextX,actionNextY;
+        for(var i=0;i<actionCountries.length;i++){
+          actionGroup = actionCountries[i];
+          actionNextX = undo ? actionGroup[1] : actionGroup[3],
+          actionNextY = undo ? actionGroup[2] : actionGroup[4],
+          actionPrevX = undo ? actionGroup[3] : actionGroup[1],
+          actionPrevY = undo ? actionGroup[4] : actionGroup[2];
+          actionGroup[0].data([{x: actionNextX,y: actionNextY}]);
+          actionGroup[0].select("#drag").transition().duration(200).attr("x",actionNextX).attr("y",actionNextY);
+          actionGroup[0].select("#shine").transition().duration(200).attr("x",actionNextX-1).attr("y",actionNextY-1);
+          actionGroup[0].select("svg").transition().duration(200).attr("x",actionNextX).attr("y",parseFloat(actionNextY)+18);
+          actionGroup[0].select("text").transition("textPosition").duration(200).attr("x",actionNextX).attr("y",actionNextY);
+        }
+        setTimeout(function(){
+          for(var i=0;i<actionCountries.length;i++){
+            actionGroup = actionCountries[i];
+            actionNextX = undo ? actionGroup[1] : actionGroup[3],
+            actionNextY = undo ? actionGroup[2] : actionGroup[4],
+            actionPrevX = undo ? actionGroup[3] : actionGroup[1],
+            actionPrevY = undo ? actionGroup[4] : actionGroup[2];
+            checkCountryStack(actionGroup[0],actionPrevX,actionPrevY,actionNextX,actionNextY);
+          }
+        },300);
       });
     }
   });
@@ -826,13 +862,13 @@ function createMenus(){
                     var actionColor;
                     if(undo)actionColor=prevColor;
                     else actionColor=nextColor;
-                    actionGraph.transition()
+                    actionGraph.transition("color")
                                 .duration(100)
                                 .attr("fill",actionColor)
                                 .attr("stroke",actionColor);
                   });
 
-                  selectedGraph.transition()
+                  selectedGraph.transition("color")
                               .duration(200)
                               .attr("fill",color)
                               .attr("stroke",color);
@@ -849,6 +885,7 @@ function createMenus(){
 
 
 function createNewTile(country){
+  var tileUnder;
   var drag = d3.drag()
     .on("drag", dragmove)
     .on("end",dragend)
@@ -867,10 +904,11 @@ function createNewTile(country){
                              })
 			    .on("mouseover",function(){
               isSelected = 1;
-				      dragrect.attr("fill-opacity", alpha+0.3);})
-			   .on("mouseout",function(){
+				      dragrect.attr("fill-opacity", alpha+0.3);
+          }).on("mouseout",function(){
               isSelected = 0;
-				      dragrect.attr("fill-opacity", alpha);});
+				      dragrect.attr("fill-opacity", alpha);
+          });
   newg.attr("transform","translate(0,0)");
 
   var shinerect = newg.append("rect")
@@ -940,7 +978,6 @@ function createNewTile(country){
   function dragmove(d){
     if(dragInitiated){
       var c = d3.mouse(this)
-
       tx = Math.max(0, Math.min(gw - width, c[0]/0.35-ex));
       ty = Math.max(0, Math.min(gh - height, c[1]/0.35-ey));
       dragrect.attr("x",d.x=tx).attr("y",d.y=ty);
@@ -951,8 +988,8 @@ function createNewTile(country){
   }
 
   function dragstart(d){
-    ix = parseInt(dragrect.attr("x"));
-    iy = parseInt(dragrect.attr("y"));
+    ix = parseFloat(dragrect.attr("x"));
+    iy = parseFloat(dragrect.attr("y"));
     ex = d3.mouse(this)[0]/0.35 - ix;
     ey = d3.mouse(this)[1]/0.35 - iy;
     hideMenu(svgMenu);
@@ -978,34 +1015,37 @@ function createNewTile(country){
               .style("stroke-dasharray","0,"+parseInt(width-6)+","+parseInt(width+height-6)+","+height);
       shinerect.attr("cursor","grab").transition().duration(200).attr("height", height).attr("width", width).attr("x",d.x=tx-1).attr("y",d.y=ty-1);
       text.attr("cursor","grab").transition("textPosition").duration(200).attr("x",d.x=tx).attr("y",d.y=ty).style("font-size", "20px").attr("dy", "0.8em");
-      graph.attr("cursor","grab").transition().duration(200).attr("x",d.x=tx).attr("y",d.y=ty+18);
-
+      graph.attr("cursor","grab").transition().duration(200).attr("x",d.x=tx).attr("y",d.y=ty+18)
+            .on("end",function(){
+              if(tx!=ix || ty!=iy){
+                var tileUnder = checkCountryStack(newg,ix,iy,tx,ty);
+                var actionDragrect = dragrect;
+                var actionShinerect = shinerect;
+                var actionText = text;
+                var actionGraph = graph;
+                var actionGroup = newg;
+                var prevX = ix,
+                    prevY = iy,
+                    nextX = tx,
+                    nextY = ty;
+                addAction(function(undo){
+                  var actionNextX = undo ? prevX : nextX,
+                      actionNextY = undo ? prevY : nextY,
+                      actionPrevX = undo ? nextX : prevX,
+                      actionPrevY = undo ? nextY : prevY;
+                  actionGroup.data([{x: actionNextX,y: actionNextY}]);
+                  actionDragrect.transition().duration(200).attr("x",actionNextX).attr("y",actionNextY);
+                  actionShinerect.transition().duration(200).attr("x",actionNextX-1).attr("y",actionNextY-1);
+                  actionGraph.transition().duration(200).attr("x",actionNextX).attr("y",actionNextY+18);
+                  actionText.transition("textPosition").duration(200).attr("x",actionNextX).attr("y",actionNextY);
+                  setTimeout(function(){
+                      actionText.transition("textn").duration(200).attr("opacity",1);
+                      checkCountryStack(actionGroup,actionPrevX,actionPrevY,actionNextX,actionNextY);
+                    },300);
+                });
+              }
+            });
       dragInitiated = false;
-
-      if(tx!=ix || ty!=iy){
-        checkCountryStack(text,ix,iy,tx,ty);
-        var actionDragrect = dragrect;
-        var actionShinerect = shinerect;
-        var actionText = text;
-        var actionGraph = graph;
-        var actionGroup = newg;
-        var prevX = ix,
-            prevY = iy,
-            nextX = tx,
-            nextY = ty;
-        addAction(function(undo){
-          var actionNextX = undo ? prevX : nextX,
-              actionNextY = undo ? prevY : nextY,
-              actionPrevX = undo ? nextX : prevX,
-              actionPrevY = undo ? nextY : prevY;
-          actionGroup.data([{x: actionNextX,y: actionNextY}]);
-          actionDragrect.transition().duration(200).attr("x",actionNextX).attr("y",actionNextY);
-          actionShinerect.transition().duration(200).attr("x",actionNextX-1).attr("y",actionNextY-1);
-          actionGraph.transition().duration(200).attr("x",actionNextX).attr("y",actionNextY+18);
-          actionText.transition("textPosition").duration(200).attr("x",actionNextX).attr("y",actionNextY);
-          checkCountryStack(actionText,actionPrevX,actionPrevY,actionNextX,actionNextY);
-        });
-      }
     }
   }
 }
@@ -1043,8 +1083,8 @@ function computeGraph(polyarchies){
     }
     previousYear = polyarchies[1][i];
     x = (polyarchies[1][i]-yearX)*interval+4;
-    y = 80 - polyarchies[graphIndex][i]*74;
-    z = 50*globalIntervals[intervalIndex]*polyarchies[graphIndex+17][i];
+    y = 80 - polyarchies[graphIndex][i]*75;
+    z = 75*globalIntervals[intervalIndex]*polyarchies[graphIndex+17][i];
 
     if(countryData)countryData += "L" + x + "," + y;
     else countryData = "M" + x + "," + y;
@@ -1153,3 +1193,9 @@ loadWorldMap(readTextFile("misc/worldtilegrid_vdem.csv"));
 loadIntervals(readTextFile("misc/intervals.csv"));
 loadData(readTextFile("misc/vdem71selection.csv"));
 loadDescriptions(readTextFile("misc/descriptions.csv"));
+
+
+if(!localStorage.getItem('tutorial')){
+  localStorage.setItem('tutorial', 1);
+  setTimeout(tutorialAnimation,2000);
+}
