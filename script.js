@@ -1191,7 +1191,7 @@ function readTextFile(filepath){
 createMenus();
 loadWorldMap(readTextFile("misc/worldtilegrid_vdem.csv"));
 loadIntervals(readTextFile("misc/intervals.csv"));
-loadData(readTextFile("misc/vdem10selection.csv"));
+loadData(readTextFile("misc/vdem71selection.csv"));
 loadDescriptions(readTextFile("misc/descriptions.csv"));
 
 
